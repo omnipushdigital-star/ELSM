@@ -1,1505 +1,1003 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ELSM Portal â€” CBIC Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg: #0a0e1a;
-      --bg2: #0f1524;
-      --bg3: #151c2e;
-      --border: #1e2a42;
-      --accent: #00d4ff;
-      --accent2: #0099bb;
-      --green: #00e5a0;
-      --amber: #ffb830;
-      --red: #ff4d6d;
-      --purple: #b47cff;
-      --text: #e2e8f4;
-      --muted: #6b7a9a;
-      --card: #111827;
-      --font-mono: 'IBM Plex Mono', monospace;
-      --font-sans: 'IBM Plex Sans', sans-serif;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font-sans);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* â”€â”€ GRID NOISE BACKGROUND â”€â”€ */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(var(--border) 1px, transparent 1px),
-        linear-gradient(90deg, var(--border) 1px, transparent 1px);
-      background-size: 48px 48px;
-      opacity: 0.25;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* â”€â”€ SIDEBAR â”€â”€ */
-    .sidebar {
-      position: fixed;
-      left: 0; top: 0; bottom: 0;
-      width: 220px;
-      background: var(--bg2);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      z-index: 10;
-      padding: 0;
-    }
-
-    .sidebar-logo {
-      padding: 20px 20px 16px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .sidebar-logo .brand {
-      font-family: var(--font-mono);
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--accent);
-      letter-spacing: 2px;
-    }
-
-    .sidebar-logo .sub {
-      font-size: 10px;
-      color: var(--muted);
-      letter-spacing: 1px;
-      margin-top: 2px;
-    }
-
-    .nav-section {
-      padding: 12px 0;
-      flex: 1;
-    }
-
-    .nav-label {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 2px;
-      color: var(--muted);
-      padding: 6px 20px;
-      text-transform: uppercase;
-    }
-
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 20px;
-      cursor: pointer;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 500;
-      transition: all 0.15s;
-      border-left: 3px solid transparent;
-    }
-
-    .nav-item:hover { color: var(--text); background: rgba(0,212,255,0.04); }
-    .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(0,212,255,0.07); }
-
-    .nav-item .icon { font-size: 16px; width: 18px; text-align: center; }
-
-    .sidebar-footer {
-      padding: 16px 20px;
-      border-top: 1px solid var(--border);
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    .user-chip {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .avatar {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), var(--purple));
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 700; color: var(--bg);
-    }
-
-    /* â”€â”€ MAIN LAYOUT â”€â”€ */
-    .main {
-      margin-left: 220px;
-      position: relative;
-      z-index: 1;
-      min-height: 100vh;
-    }
-
-    /* â”€â”€ TOPBAR â”€â”€ */
-    .topbar {
-      height: 56px;
-      border-bottom: 1px solid var(--border);
-      background: rgba(10,14,26,0.8);
-      backdrop-filter: blur(12px);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 28px;
-      position: sticky;
-      top: 0;
-      z-index: 9;
-    }
-
-    .topbar-left {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 1px;
-    }
-
-    .topbar-left span { color: var(--accent); }
-
-    .topbar-right { display: flex; align-items: center; gap: 12px; }
-
-    .status-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--green);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,229,160,0.4); }
-      50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(0,229,160,0); }
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 14px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: all 0.15s;
-      font-family: var(--font-sans);
-      letter-spacing: 0.3px;
-    }
-
-    .btn-primary { background: var(--accent); color: var(--bg); }
-    .btn-primary:hover { background: var(--accent2); }
-    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
-    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
-    .btn-sm { padding: 5px 10px; font-size: 11px; }
-    .btn-green { background: var(--green); color: var(--bg); }
-    .btn-red { background: var(--red); color: #fff; }
-    .btn-amber { background: var(--amber); color: var(--bg); }
-
-    /* â”€â”€ PAGE CONTENT â”€â”€ */
-    .page { display: none; padding: 28px; animation: fadeIn 0.2s ease; }
-    .page.active { display: block; }
-
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
-    .page-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 24px;
-    }
-
-    .page-title {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .page-subtitle {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 4px;
-      letter-spacing: 0.5px;
-    }
-
-    /* â”€â”€ KPI CARDS â”€â”€ */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 14px;
-      margin-bottom: 28px;
-    }
-
-    .kpi-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px;
-      position: relative;
-      overflow: hidden;
-      transition: border-color 0.2s;
-    }
-
-    .kpi-card:hover { border-color: var(--accent2); }
-
-    .kpi-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-    }
-
-    .kpi-card.blue::before { background: var(--accent); }
-    .kpi-card.green::before { background: var(--green); }
-    .kpi-card.amber::before { background: var(--amber); }
-    .kpi-card.red::before { background: var(--red); }
-    .kpi-card.purple::before { background: var(--purple); }
-    .kpi-card.muted::before { background: var(--muted); }
-
-    .kpi-label {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 1.5px;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-
-    .kpi-value {
-      font-family: var(--font-mono);
-      font-size: 32px;
-      font-weight: 600;
-      line-height: 1;
-    }
-
-    .kpi-card.blue .kpi-value { color: var(--accent); }
-    .kpi-card.green .kpi-value { color: var(--green); }
-    .kpi-card.amber .kpi-value { color: var(--amber); }
-    .kpi-card.red .kpi-value { color: var(--red); }
-    .kpi-card.purple .kpi-value { color: var(--purple); }
-    .kpi-card.muted .kpi-value { color: var(--muted); }
-
-    /* â”€â”€ TABLE â”€â”€ */
-    .table-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-      margin-bottom: 20px;
-    }
-
-    .table-header {
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .table-title {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      letter-spacing: 1px;
-      color: var(--text);
-    }
-
-    .table-filters {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    select, input[type="text"] {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-family: var(--font-sans);
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    select:focus, input[type="text"]:focus { border-color: var(--accent); }
-
-    table { width: 100%; border-collapse: collapse; }
-
-    thead tr { background: var(--bg3); }
-
-    th {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 1px;
-      color: var(--muted);
-      text-align: left;
-      padding: 10px 16px;
-      border-bottom: 1px solid var(--border);
-      text-transform: uppercase;
-    }
-
-    td {
-      padding: 12px 16px;
-      font-size: 13px;
-      border-bottom: 1px solid rgba(30,42,66,0.6);
-      vertical-align: middle;
-    }
-
-    tr:last-child td { border-bottom: none; }
-    tbody tr:hover { background: rgba(0,212,255,0.03); }
-
-    .mono { font-family: var(--font-mono); font-size: 12px; }
-
-    /* â”€â”€ BADGES â”€â”€ */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-family: var(--font-mono);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-
-    .badge-pending { background: rgba(255,184,48,0.12); color: var(--amber); border: 1px solid rgba(255,184,48,0.2); }
-    .badge-approved { background: rgba(0,212,255,0.10); color: var(--accent); border: 1px solid rgba(0,212,255,0.2); }
-    .badge-assigned { background: rgba(180,124,255,0.10); color: var(--purple); border: 1px solid rgba(180,124,255,0.2); }
-    .badge-in_progress { background: rgba(0,212,255,0.06); color: #7dd3fc; border: 1px solid rgba(125,211,252,0.2); }
-    .badge-completed { background: rgba(0,229,160,0.10); color: var(--green); border: 1px solid rgba(0,229,160,0.2); }
-    .badge-rejected { background: rgba(255,77,109,0.10); color: var(--red); border: 1px solid rgba(255,77,109,0.2); }
-    .badge-sla_breached { background: rgba(255,77,109,0.18); color: var(--red); border: 1px solid rgba(255,77,109,0.4); animation: blink 1.5s infinite; }
-    .badge-ese { background: rgba(0,212,255,0.08); color: var(--accent); border: 1px solid rgba(0,212,255,0.15); }
-    .badge-eue { background: rgba(180,124,255,0.08); color: var(--purple); border: 1px solid rgba(180,124,255,0.15); }
-
-    @keyframes blink { 50% { opacity: 0.6; } }
-
-    /* â”€â”€ MODAL â”€â”€ */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(4px);
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      display: none;
-    }
-
-    .modal-overlay.open { display: flex; animation: fadeIn 0.15s ease; }
-
-    .modal {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      width: 100%;
-      max-width: 520px;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-
-    .modal-header {
-      padding: 20px 24px 16px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .modal-title {
-      font-size: 16px;
-      font-weight: 700;
-    }
-
-    .modal-close {
-      background: none;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 20px;
-      line-height: 1;
-      padding: 0;
-    }
-
-    .modal-close:hover { color: var(--text); }
-
-    .modal-body { padding: 24px; }
-
-    .form-group { margin-bottom: 16px; }
-
-    .form-label {
-      display: block;
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 1px;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-
-    .form-control {
-      width: 100%;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 9px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-family: var(--font-sans);
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    .form-control:focus { border-color: var(--accent); }
-
-    textarea.form-control { resize: vertical; min-height: 80px; }
-
-    .modal-footer {
-      padding: 16px 24px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-
-    /* â”€â”€ DETAIL PANEL â”€â”€ */
-    .detail-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .detail-item { }
-
-    .detail-key {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 1px;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 3px;
-    }
-
-    .detail-val {
-      font-size: 13px;
-      color: var(--text);
-    }
-
-    /* â”€â”€ TIMELINE â”€â”€ */
-    .timeline {
-      position: relative;
-      padding-left: 24px;
-    }
-
-    .timeline::before {
-      content: '';
-      position: absolute;
-      left: 7px; top: 0; bottom: 0;
-      width: 1px;
-      background: var(--border);
-    }
-
-    .tl-step {
-      position: relative;
-      padding-bottom: 20px;
-    }
-
-    .tl-step::before {
-      content: '';
-      position: absolute;
-      left: -20px;
-      top: 4px;
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      background: var(--border);
-      border: 2px solid var(--bg2);
-    }
-
-    .tl-step.done::before { background: var(--green); }
-    .tl-step.active::before { background: var(--accent); animation: pulse 1.5s infinite; }
-
-    .tl-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .tl-time {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    /* â”€â”€ SLA BAR â”€â”€ */
-    .sla-bar-wrap {
-      background: var(--bg3);
-      border-radius: 4px;
-      height: 6px;
-      overflow: hidden;
-      margin-top: 6px;
-    }
-
-    .sla-bar { height: 100%; border-radius: 4px; transition: width 0.5s; }
-    .sla-bar.ok { background: var(--green); }
-    .sla-bar.warn { background: var(--amber); }
-    .sla-bar.breached { background: var(--red); }
-
-    /* â”€â”€ EMPTY STATE â”€â”€ */
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--muted);
-    }
-
-    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
-    .empty-state .msg { font-size: 14px; margin-bottom: 4px; color: var(--text); }
-    .empty-state .sub { font-size: 12px; }
-
-    /* â”€â”€ LOGIN â”€â”€ */
-    #login-page {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .login-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      width: 100%;
-      max-width: 380px;
-      padding: 40px 36px;
-    }
-
-    .login-logo {
-      font-family: var(--font-mono);
-      font-size: 28px;
-      font-weight: 600;
-      color: var(--accent);
-      letter-spacing: 4px;
-      margin-bottom: 4px;
-    }
-
-    .login-tagline {
-      font-size: 11px;
-      color: var(--muted);
-      margin-bottom: 32px;
-      letter-spacing: 0.5px;
-    }
-
-    .login-error {
-      background: rgba(255,77,109,0.1);
-      border: 1px solid rgba(255,77,109,0.3);
-      color: var(--red);
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      margin-bottom: 14px;
-      display: none;
-    }
-
-    /* â”€â”€ TOAST â”€â”€ */
-    .toast-wrap {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 999;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .toast {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px 16px;
-      font-size: 13px;
-      min-width: 260px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      animation: slideUp 0.2s ease;
-      border-left: 3px solid var(--green);
-    }
-
-    .toast.error { border-left-color: var(--red); }
-    .toast.warn { border-left-color: var(--amber); }
-
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* â”€â”€ LOADING â”€â”€ */
-    .loading {
-      display: inline-block;
-      width: 16px; height: 16px;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .spinner-center {
-      display: flex;
-      justify-content: center;
-      padding: 40px;
-    }
-
-    /* â”€â”€ ACTION ROW â”€â”€ */
-    .action-row {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    /* scrollbar */
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ELSM Dashboard – CBIC · DGGI · BSNL</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* CBIC Primary Palette */
+  --navy:#1a237e;
+  --navy2:#283593;
+  --navy3:#3949ab;
+  --navy-light:#e8eaf6;
+  --navy-xlight:#f3f4fb;
+  /* Saffron accent (India flag) */
+  --saffron:#e65100;
+  --saffron2:#f57c00;
+  --saffron-light:#fff3e0;
+  /* Teal/green (GoI portal buttons) */
+  --teal:#00695c;
+  --teal2:#00897b;
+  --teal-light:#e0f2f1;
+  /* Neutrals */
+  --bg:#f5f6fa;
+  --bg-white:#ffffff;
+  --border:#d0d5e8;
+  --border2:#b0bcd8;
+  --text:#1a1a2e;
+  --text2:#3d3d5c;
+  --text3:#6e6e8a;
+  --text-light:#9999b3;
+  /* Semantic */
+  --green:#2e7d32;
+  --green-light:#e8f5e9;
+  --amber:#e65100;
+  --amber-light:#fff3e0;
+  --red:#c62828;
+  --red-light:#ffebee;
+  --blue:#1565c0;
+  --blue-light:#e3f2fd;
+  --font:'Noto Sans',sans-serif;
+  --mono:'Noto Sans Mono',monospace;
+  --r:6px;
+  --r2:8px;
+  --shadow:0 1px 4px rgba(26,35,126,.1);
+  --shadow2:0 2px 8px rgba(26,35,126,.14);
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;min-height:100vh;overflow-x:hidden}
+.app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:auto auto 1fr;min-height:100vh}
+
+/* ── GOI Top Strip ── */
+.goi-strip{grid-column:1/-1;background:var(--navy);color:#fff;padding:0 24px;height:36px;display:flex;align-items:center;gap:16px;font-size:11px;letter-spacing:.02em}
+.goi-strip-logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px}
+.goi-emblem{width:26px;height:26px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--navy);font-weight:900;line-height:1}
+.goi-sep{width:1px;height:18px;background:rgba(255,255,255,.3)}
+.goi-strip-right{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:11px}
+.goi-strip-right a{color:rgba(255,255,255,.8);text-decoration:none}
+.goi-strip-right a:hover{color:#fff}
+
+/* ── Header ── */
+.header{grid-column:1/-1;background:var(--bg-white);border-bottom:3px solid var(--saffron);padding:0 24px;height:68px;display:flex;align-items:center;gap:20px;box-shadow:var(--shadow2)}
+.header-brand{display:flex;align-items:center;gap:14px}
+.header-logo-block{display:flex;flex-direction:column}
+.header-title{font-size:17px;font-weight:700;color:var(--navy);letter-spacing:-.2px;line-height:1.2}
+.header-subtitle{font-size:11px;color:var(--text3);font-weight:500}
+.cbic-logo{width:48px;height:48px;background:var(--navy);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:1.2;letter-spacing:.5px;flex-shrink:0}
+.header-divider{width:1px;height:40px;background:var(--border)}
+.portal-name{display:flex;flex-direction:column}
+.portal-name-main{font-size:15px;font-weight:700;color:var(--saffron);letter-spacing:-.1px}
+.portal-name-sub{font-size:11px;color:var(--text3)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.badge-live{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--green);font-weight:600;padding:4px 10px;background:var(--green-light);border-radius:20px;border:1px solid #a5d6a7}
+.dot-live{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.user-pill{display:flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:var(--bg);transition:background .15s}
+.user-pill:hover{background:var(--navy-light)}
+.avatar{width:30px;height:30px;background:var(--navy);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.time-chip{font-family:var(--mono);font-size:11px;color:var(--navy);background:var(--navy-light);padding:4px 10px;border-radius:var(--r);border:1px solid var(--border)}
+
+/* ── Sidebar ── */
+.sidebar{background:var(--bg-white);border-right:1px solid var(--border);padding:0;display:flex;flex-direction:column;overflow-y:auto;box-shadow:1px 0 4px rgba(26,35,126,.06)}
+.nav-section{font-size:10px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.1em;padding:14px 16px 6px;border-bottom:1px solid var(--navy-light)}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 16px;cursor:pointer;color:var(--text2);font-size:12.5px;font-weight:500;transition:all .12s;border-left:3px solid transparent;position:relative}
+.nav-item:hover{background:var(--navy-xlight);color:var(--navy)}
+.nav-item.active{background:var(--navy-light);color:var(--navy);font-weight:700;border-left-color:var(--saffron)}
+.nav-icon{width:15px;height:15px;flex-shrink:0;opacity:.65}
+.nav-item.active .nav-icon{opacity:1}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;font-family:var(--mono)}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:1px solid var(--border);background:var(--navy-xlight)}
+
+/* ── Main ── */
+.main{overflow-y:auto;padding:20px 24px;background:var(--bg)}
+.page-header{margin-bottom:18px}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);margin-bottom:6px}
+.breadcrumb span{color:var(--border2)}
+.breadcrumb a{color:var(--navy);text-decoration:none}
+.page-title{font-size:20px;font-weight:700;color:var(--navy);letter-spacing:-.3px;margin-bottom:3px}
+.page-subtitle{font-size:12px;color:var(--text3)}
+
+/* ── Card ── */
+.card{background:var(--bg-white);border:1px solid var(--border);border-radius:var(--r2);padding:18px;box-shadow:var(--shadow)}
+.card-title{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title-action{font-size:11px;font-weight:600;color:var(--teal);cursor:pointer}
+
+/* ── KPI Grid ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi{background:var(--bg-white);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px 12px;position:relative;overflow:hidden;cursor:pointer;transition:box-shadow .15s,border-color .15s;border-top:3px solid var(--kpi-accent,var(--navy))}
+.kpi:hover{box-shadow:var(--shadow2);border-color:var(--kpi-accent,var(--navy3))}
+.kpi-label{font-size:10.5px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.kpi-value{font-size:28px;font-weight:700;letter-spacing:-1px;line-height:1;margin-bottom:4px;font-family:var(--mono);color:var(--navy)}
+.kpi-change{display:flex;align-items:center;gap:3px;font-size:11px;font-weight:500}
+.kpi-change.up{color:var(--green)}
+.kpi-change.down{color:var(--red)}
+.kpi-change.neutral{color:var(--text3)}
+
+/* ── Grids ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grid-65{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+
+/* ── Table ── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:9px 12px;text-align:left;font-weight:700;font-size:10.5px;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;background:var(--navy-light);border-bottom:2px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:hover td{background:var(--navy-xlight)}
+tr:last-child td{border-bottom:none}
+
+/* ── Pills / Status ── */
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:3px;font-size:10.5px;font-weight:600;letter-spacing:.02em}
+.pill::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.pill.online{background:var(--green-light);color:var(--green)}.pill.online::before{background:var(--green)}
+.pill.offline{background:var(--red-light);color:var(--red)}.pill.offline::before{background:var(--red)}
+.pill.charging{background:var(--amber-light);color:var(--amber)}.pill.charging::before{background:var(--amber)}
+.pill.sealed{background:var(--blue-light);color:var(--blue)}.pill.sealed::before{background:var(--blue)}
+.pill.breach{background:var(--red-light);color:var(--red);animation:pill-flash 1.5s infinite}.pill.breach::before{background:var(--red)}
+@keyframes pill-flash{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* ── Alert cards ── */
+.alert{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border-radius:var(--r);border-left:4px solid;margin-bottom:8px}
+.alert.critical{background:#fff8f8;border-color:var(--red)}
+.alert.warning{background:var(--amber-light);border-color:var(--saffron)}
+.alert.info{background:var(--blue-light);border-color:var(--blue)}
+.alert-title{font-weight:700;font-size:12px;margin-bottom:2px;color:var(--text)}
+.alert-body{font-size:11.5px;color:var(--text2);line-height:1.5}
+.alert-time{font-size:10px;color:var(--text3);font-family:var(--mono);white-space:nowrap;margin-top:2px}
+
+/* ── Progress ── */
+.progress-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .5s}
+
+/* ── Section ── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-title{font-size:13px;font-weight:700;color:var(--navy)}
+.section-action{font-size:11px;color:var(--teal);cursor:pointer;font-weight:600}
+
+/* ── Filter bar ── */
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.filter-btn{padding:5px 12px;border-radius:3px;font-size:11.5px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--text2);transition:all .12s;font-family:var(--font)}
+.filter-btn:hover{border-color:var(--navy3);color:var(--navy)}
+.filter-btn.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.search-input{padding:6px 12px;border-radius:var(--r);border:1px solid var(--border);background:#fff;color:var(--text);font-family:var(--font);font-size:12px;outline:none;transition:border .12s;margin-left:auto}
+.search-input:focus{border-color:var(--navy3)}
+.search-input::placeholder{color:var(--text-light)}
+
+/* ── Chip ── */
+.chip{display:inline-flex;align-items:center;background:var(--navy-light);border:1px solid var(--border);border-radius:3px;padding:1px 7px;font-size:10.5px;font-family:var(--mono);color:var(--navy);font-weight:600}
+
+/* ── Chart ── */
+.chart-wrap{position:relative;width:100%}
+
+/* ── Map grid ── */
+.map-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.map-city{background:var(--bg-white);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;cursor:pointer;transition:all .12s}
+.map-city:hover{border-color:var(--navy3);background:var(--navy-xlight)}
+.map-city-name{font-size:11px;font-weight:700;color:var(--navy);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.map-city-count{font-size:20px;font-weight:700;font-family:var(--mono);color:var(--text)}
+.map-city-sla{font-size:10px;margin-top:2px;font-family:var(--mono)}
+
+/* ── Buttons ── */
+.btn-primary{padding:8px 18px;border-radius:var(--r);border:none;background:var(--navy);color:#fff;cursor:pointer;font-family:var(--font);font-size:12.5px;font-weight:600;transition:background .12s}
+.btn-primary:hover{background:var(--navy2)}
+.btn-teal{padding:8px 18px;border-radius:var(--r);border:none;background:var(--teal);color:#fff;cursor:pointer;font-family:var(--font);font-size:12.5px;font-weight:600}
+.btn-teal:hover{background:var(--teal2)}
+.btn-outline{padding:7px 16px;border-radius:var(--r);border:1px solid var(--border);background:#fff;color:var(--text2);cursor:pointer;font-family:var(--font);font-size:12px;font-weight:500}
+.btn-outline:hover{border-color:var(--navy);color:var(--navy)}
+
+/* ── Form elements ── */
+.form-label{font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;display:block}
+.form-input{width:100%;padding:8px 11px;border-radius:var(--r);border:1px solid var(--border);background:#fff;color:var(--text);font-family:var(--font);font-size:12.5px;outline:none;transition:border .12s}
+.form-input:focus{border-color:var(--navy3);box-shadow:0 0 0 2px rgba(57,73,171,.12)}
+.form-select{width:100%;padding:8px 11px;border-radius:var(--r);border:1px solid var(--border);background:#fff;color:var(--text);font-family:var(--font);font-size:12.5px;outline:none;cursor:pointer}
+.form-textarea{width:100%;padding:8px 11px;border-radius:var(--r);border:1px solid var(--border);background:#fff;color:var(--text);font-family:var(--font);font-size:12.5px;resize:vertical;min-height:72px;outline:none}
+.form-group{margin-bottom:14px}
+
+/* ── Info box ── */
+.info-box{background:var(--blue-light);border:1px solid #90caf9;border-radius:var(--r);padding:11px 13px;font-size:11.5px;color:var(--blue);line-height:1.6}
+.warning-box{background:var(--amber-light);border:1px solid #ffcc80;border-radius:var(--r);padding:11px 13px;font-size:11.5px;color:var(--amber);line-height:1.6}
+
+/* ── Animations ── */
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.animate-in{animation:fadeIn .25s ease both}
+.stagger-1{animation-delay:.04s}.stagger-2{animation-delay:.08s}.stagger-3{animation-delay:.12s}.stagger-4{animation-delay:.16s}
+
+/* ── Success banner ── */
+.success-banner{background:var(--green-light);border:1px solid #a5d6a7;border-left:4px solid var(--green);border-radius:var(--r);padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── Responsive ── */
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.grid-65{grid-template-columns:1fr}}
+@media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{display:none}.grid-2{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
+<div id="root"></div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     LOGIN PAGE
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
-<div id="login-page">
-  <div class="login-card">
-    <div class="login-logo">ELSM</div>
-    <div class="login-tagline">Electronic Lock Solution Management - CBIC Portal</div>
-    <div class="login-error" id="login-error"></div>
-    <div class="form-group">
-      <label class="form-label">Email Address</label>
-      <input type="text" class="form-control" id="login-email" placeholder="admin@elsm.in" value="admin@elsm.in" />
-    </div>
-    <div class="form-group">
-      <label class="form-label">Password</label>
-      <input type="password" class="form-control" id="login-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value="Admin@1234" />
-    </div>
-    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;" onclick="doLogin()" id="login-btn">
-      Sign In
-    </button>
-    <div style="margin-top:16px;font-size:11px;color:var(--muted);text-align:center;">
-      BSNL CBIC - Electronic Lock Solution - v1.0
-    </div>
-  </div>
-</div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo } = React;
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     MAIN APP (hidden until login)
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
-<div id="app" style="display:none;">
+// ─── Mock Data ─────────────────────────────────────────────────
+const CITIES = [
+  {name:'Delhi East',tier:1,locks:42,online:40,sealed:38,battery:82,sla:99.4},
+  {name:'Delhi North',tier:1,locks:31,online:30,sealed:29,battery:76,sla:98.9},
+  {name:'Gurugram',tier:1,locks:28,online:28,sealed:26,battery:91,sla:99.8},
+  {name:'Noida',tier:1,locks:19,online:18,sealed:17,battery:65,sla:97.2},
+  {name:'Mumbai West',tier:1,locks:38,online:37,sealed:36,battery:88,sla:99.6},
+  {name:'Mumbai South',tier:1,locks:27,online:25,sealed:24,battery:71,sla:98.1},
+  {name:'Bengaluru NW',tier:1,locks:33,online:33,sealed:32,battery:94,sla:99.9},
+  {name:'Bengaluru South',tier:1,locks:22,online:21,sealed:20,battery:79,sla:99.2},
+  {name:'Chennai North',tier:1,locks:18,online:17,sealed:16,battery:68,sla:97.8},
+  {name:'Hyderabad',tier:1,locks:24,online:24,sealed:23,battery:87,sla:99.5},
+  {name:'Kolkata South',tier:1,locks:20,online:19,sealed:18,battery:74,sla:98.3},
+  {name:'Ahmedabad',tier:1,locks:15,online:15,sealed:14,battery:90,sla:99.7},
+  {name:'Pune I',tier:1,locks:16,online:15,sealed:14,battery:72,sla:98.5},
+  {name:'Lucknow',tier:2,locks:12,online:11,sealed:11,battery:83,sla:99.1},
+  {name:'Jaipur',tier:2,locks:9,online:9,sealed:8,battery:77,sla:99.0},
+  {name:'Bhopal',tier:2,locks:8,online:7,sealed:7,battery:69,sla:96.8},
+  {name:'Patna I',tier:2,locks:7,online:6,sealed:6,battery:55,sla:95.4},
+  {name:'Nagpur I',tier:2,locks:10,online:10,sealed:9,battery:85,sla:99.3},
+  {name:'Surat',tier:2,locks:11,online:10,sealed:10,battery:80,sla:98.7},
+  {name:'Indore',tier:2,locks:6,online:6,sealed:6,battery:92,sla:99.6},
+  {name:'Vadodara I',tier:2,locks:8,online:7,sealed:7,battery:74,sla:98.2},
+  {name:'Visakhapatnam',tier:2,locks:7,online:6,sealed:6,battery:63,sla:97.0},
+  {name:'Coimbatore',tier:2,locks:5,online:5,sealed:5,battery:88,sla:99.4},
+  {name:'Raipur',tier:2,locks:4,online:4,sealed:4,battery:81,sla:99.1},
+];
 
-  <!-- SIDEBAR -->
-  <nav class="sidebar">
-    <div class="sidebar-logo">
-      <div class="brand">ELSM</div>
-      <div class="sub">CBIC DASHBOARD</div>
+const LOCKS = Array.from({length:60},(_,i)=>{
+  const city=CITIES[i%CITIES.length];
+  const statuses=['online','online','online','offline','charging','breach'];
+  const s=statuses[Math.floor(Math.random()*statuses.length)];
+  return{id:`EL-${String(1001+i).padStart(4,'0')}`,machine:`M-${city.name.split(' ')[0].slice(0,3).toUpperCase()}-${String(10+i%90).padStart(3,'0')}`,city:city.name,tier:city.tier,status:s,battery:Math.round(20+Math.random()*75),gps:`${(28+Math.random()*5).toFixed(4)}°N, ${(76+Math.random()*5).toFixed(4)}°E`,lastPing:i%7===0?'32 min ago':i%11===0?'4 hrs ago':'Just now',sealed:s!=='offline'&&s!=='breach',firm:`DGGI ${city.name.split(' ')[0]} Commissionerate`,installedDays:Math.round(30+Math.random()*300),events:Math.round(2+Math.random()*18)};
+});
+
+const ALERTS=[
+  {id:1,type:'critical',title:'Battery Critical — EL-1023',body:'Lock EL-1023 at Patna I has fallen below 15%. Immediate charging required.',time:'3 min ago',city:'Patna I'},
+  {id:2,type:'critical',title:'Geo-fence Breach — EL-1047',body:'Lock EL-1047 (M-MUM-047) has moved outside designated geo-fence. Tamper suspected.',time:'11 min ago',city:'Mumbai South'},
+  {id:3,type:'warning',title:'Connectivity Lost — EL-1031',body:'Lock EL-1031 has not pinged in 4+ hours. SIM connectivity may be impaired.',time:'1 hr ago',city:'Bhopal'},
+  {id:4,type:'warning',title:'SLA Breach Risk — Bhopal',body:'3 pending ESE/EUE requests in Bhopal are approaching the 3-day SLA window cutoff.',time:'2 hrs ago',city:'Bhopal'},
+  {id:5,type:'info',title:'New ESE Request — Delhi East',body:'Machine M-DEL-014 has been assigned a new Electronic Sealing Event by nodal officer.',time:'3 hrs ago',city:'Delhi East'},
+  {id:6,type:'info',title:'Monthly SLA Report Ready',body:'March 2026 SLA performance report has been auto-generated and is ready for review.',time:'5 hrs ago',city:'All Zones'},
+];
+
+const ESE_EVENTS=[
+  {id:'ESE-2024',machine:'M-DEL-014',city:'Delhi East',type:'Seal',officer:'Rajesh Kumar',status:'Completed',date:'15 Mar 2026',sla:'Within SLA'},
+  {id:'ESE-2023',machine:'M-MUM-047',city:'Mumbai West',type:'Unseal',officer:'Priya Sharma',status:'In Progress',date:'15 Mar 2026',sla:'Day 2 of 3'},
+  {id:'ESE-2022',machine:'M-BHO-009',city:'Bhopal',type:'Seal',officer:'Amit Singh',status:'Pending',date:'13 Mar 2026',sla:'⚠ Day 3 of 3'},
+  {id:'ESE-2021',machine:'M-GGN-022',city:'Gurugram',type:'Seal',officer:'Neha Verma',status:'Completed',date:'14 Mar 2026',sla:'Within SLA'},
+  {id:'ESE-2020',machine:'M-PNE-011',city:'Pune I',type:'Unseal',officer:'Suresh Patel',status:'Completed',date:'12 Mar 2026',sla:'Within SLA'},
+  {id:'ESE-2019',machine:'M-HYD-033',city:'Hyderabad',type:'Seal',officer:'Kavitha Reddy',status:'In Progress',date:'15 Mar 2026',sla:'Day 1 of 3'},
+  {id:'ESE-2018',machine:'M-PAT-005',city:'Patna I',type:'Seal',officer:'Vikram Yadav',status:'Breach',date:'11 Mar 2026',sla:'✗ Overdue +1d'},
+];
+
+const months=['Oct','Nov','Dec','Jan','Feb','Mar'];
+const MONTHLY_ESE=[38,52,61,55,68,74];
+const MONTHLY_EUE=[21,34,40,38,47,55];
+const MONTHLY_SLA=[99.1,99.3,98.9,99.5,99.2,99.4];
+
+const GST_HIERARCHY={
+  zones:['Delhi Zone','Mumbai Zone','Chennai Zone','Kolkata Zone','Bengaluru Zone','Hyderabad Zone','Ahmedabad Zone'],
+  commissionerates:{'Delhi Zone':['Delhi South','Delhi North','Delhi East','Delhi West','Gurugram','Noida','Faridabad'],'Mumbai Zone':['Mumbai Central','Mumbai South','Mumbai West','Thane','Pune I','Pune II','Nashik'],'Chennai Zone':['Chennai North','Chennai South','Chennai Outer','Coimbatore','Madurai','Tiruchirapalli'],'Kolkata Zone':['Kolkata South','Kolkata North','Howrah','Haldia','Bhubaneswar'],'Bengaluru Zone':['Bengaluru North West','Bengaluru South','Mysuru','Belagavi'],'Hyderabad Zone':['Hyderabad I','Hyderabad II','Guntur','Visakhapatnam'],'Ahmedabad Zone':['Ahmedabad South','Ahmedabad North','Surat','Rajkot','Vadodara I']},
+  divisions:['Division I','Division II','Division III','Division IV','Division V'],
+  ranges:['Range I','Range II','Range III','Range IV','Range V','Range VI'],
+};
+
+const INITIAL_TICKETS=[
+  {id:'TKT-2026-0041',type:'ESE',machine:'M-DEL-014',machineReg:'CHTPR0365MHS0032001',firm:'M/s Shri Ganesh Tobacco Pvt. Ltd.',gstin:'07AABCS1429B1Z5',zone:'Delhi Zone',commissionerate:'Delhi East',division:'Division II',range:'Range I',rangeOfficer:'Rajesh Kumar Sharma',requestDate:'14 Mar 2026',requestRef:'RO/DEL-E/2026/147',status:'Assigned',priority:'Normal',lockId:'EL-1014',city:'Delhi East',hsnsReg:'CHTPR0365MHS0032',notes:'Routine periodic sealing as per HSNS schedule.'},
+  {id:'TKT-2026-0042',type:'EUE',machine:'M-MUM-047',machineReg:'CHTPR0365MHS0030001',firm:'M/s Bombay Pan Masala Works',gstin:'27AAGCB0399C1ZP',zone:'Mumbai Zone',commissionerate:'Mumbai West',division:'Division III',range:'Range IV',rangeOfficer:'Priya Sharma',requestDate:'15 Mar 2026',requestRef:'RO/MUM-W/2026/089',status:'In Progress',priority:'High',lockId:'EL-1047',city:'Mumbai West',hsnsReg:'CHTPR0365MHS0030',notes:'Machine undergoing maintenance. Unsealing for repair.'},
+  {id:'TKT-2026-0043',type:'ESE',machine:'M-BHO-009',machineReg:'',firm:'M/s Central India Pan Co.',gstin:'23AAICE4532F1ZR',zone:'Mumbai Zone',commissionerate:'Mumbai West',division:'Division I',range:'Range II',rangeOfficer:'Amit Singh',requestDate:'13 Mar 2026',requestRef:'RO/BHO/2026/201',status:'Pending',priority:'Urgent',lockId:'EL-1031',city:'Bhopal',hsnsReg:'CHTPR0365MHS0031',notes:'⚠ Approaching 3-day SLA window.'},
+  {id:'TKT-2026-0044',type:'ESE',machine:'M-GGN-022',machineReg:'CHTPR0365MHS0022001',firm:'M/s Haryana Spice Foods Ltd.',gstin:'06AABHG1234A1ZT',zone:'Delhi Zone',commissionerate:'Gurugram',division:'Division II',range:'Range III',rangeOfficer:'Neha Verma',requestDate:'14 Mar 2026',requestRef:'RO/GGN/2026/312',status:'Completed',priority:'Normal',lockId:'EL-1022',city:'Gurugram',hsnsReg:'CHTPR0365MHS0022',notes:'Completed on time.'},
+  {id:'TKT-2026-0045',type:'EUE',machine:'M-HYD-033',machineReg:'CHTPR0365MHS0033001',firm:'M/s Deccan Tobacco Products',gstin:'36AAICG7654Z1ZK',zone:'Hyderabad Zone',commissionerate:'Hyderabad I',division:'Division IV',range:'Range V',rangeOfficer:'Kavitha Reddy',requestDate:'15 Mar 2026',requestRef:'RO/HYD-I/2026/055',status:'Assigned',priority:'Normal',lockId:'EL-1033',city:'Hyderabad',hsnsReg:'CHTPR0365MHS0033',notes:'New brand addition.'},
+  {id:'TKT-2026-0046',type:'ESE',machine:'M-PAT-005',machineReg:'',firm:'M/s Eastern Masala Pvt. Ltd.',gstin:'10AAICE9876B1ZM',zone:'Kolkata Zone',commissionerate:'Kolkata South',division:'Division I',range:'Range I',rangeOfficer:'Vikram Yadav',requestDate:'11 Mar 2026',requestRef:'RO/PAT-I/2026/178',status:'Breach',priority:'Critical',lockId:'EL-1031',city:'Patna I',hsnsReg:'CHTPR0365MHS0019',notes:'✗ SLA breached.'},
+  {id:'TKT-2026-0047',type:'ESE',machine:'M-CHN-018',machineReg:'CHTPR0365MHS0018001',firm:'M/s South India Tobacco Ltd.',gstin:'33AAACS4321C1ZV',zone:'Chennai Zone',commissionerate:'Chennai North',division:'Division III',range:'Range II',rangeOfficer:'Suresh Patel',requestDate:'15 Mar 2026',requestRef:'RO/CHN-N/2026/423',status:'New',priority:'Normal',lockId:'',city:'Chennai North',hsnsReg:'CHTPR0365MHS0018',notes:'Lock not yet assigned.'},
+];
+
+// ─── Nav icons ──────────────────────────────────────────────────
+function NavIcon({name}){
+  const paths={
+    dashboard:'M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM9 9h6v6H9z',
+    locks:'M3 7V5a5 5 0 0110 0v2M2 7h12v8H2z',
+    events:'M2 3h12v11H2zM5 1v3M11 1v3M2 7h12',
+    alerts:'M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5 6.5 5z',
+    map:'M6 1L1 3v12l5-2 4 2 5-2V3l-5 2-4-2zM6 1v12M10 3v12',
+    sla:'M8 2a6 6 0 100 12A6 6 0 008 2zM8 4v4l3 2',
+    billing:'M2 4h12v9H2zM5 8h6M5 11h4M2 7h12',
+    dggi:'M2 4h12M2 8h8M2 12h5M12 9a3 3 0 100 6 3 3 0 000-6zM11 12h2M12 11v2',
+    settings:'M8 5.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3',
+  };
+  return(
+    <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d={paths[name]||''}/>
+    </svg>
+  );
+}
+
+// ─── Topbar components ──────────────────────────────────────────
+function GOIStrip(){
+  return(
+    <div className="goi-strip">
+      <div className="goi-strip-logo">
+        <div className="goi-emblem">॥</div>
+        Government of India &nbsp;|&nbsp; Ministry of Finance &nbsp;|&nbsp; Department of Revenue
+      </div>
+      <div className="goi-sep"/>
+      <span style={{opacity:.75}}>Central Board of Indirect Taxes and Customs (CBIC)</span>
+      <div className="goi-strip-right">
+        <a href="#">Screen Reader Access</a>
+        <div className="goi-sep"/>
+        <a href="#">Skip to Main Content</a>
+        <div className="goi-sep"/>
+        <span>हिंदी</span>
+      </div>
     </div>
-    <div class="nav-section">
-      <div class="nav-label">Main</div>
-      <div class="nav-item active" onclick="showPage('dashboard')">
-        <span class="icon">&#11041;</span> Dashboard
-      </div>
-      <div class="nav-item" onclick="showPage('requests')">
-        <span class="icon">â‡„</span> ESE/EUE Requests
-      </div>
-      <div class="nav-label" style="margin-top:8px;">Management</div>
-      <div class="nav-item" onclick="showPage('devices')">
-        <span class="icon">â—ˆ</span> E-Lock Devices
-      </div>
-      <div class="nav-item" onclick="showPage('alerts')">
-        <span class="icon">â—¬</span> Alerts
-      </div>
-      <div class="nav-item" onclick="showPage('audit')">
-        <span class="icon">â‰¡</span> Audit Log
-      </div>
-    </div>
-    <div class="sidebar-footer">
-      <div class="user-chip">
-        <div class="avatar" id="user-avatar">SA</div>
-        <div>
-          <div style="font-size:12px;color:var(--text);font-weight:500;" id="user-name">Admin</div>
-          <div style="font-size:10px;color:var(--muted);" id="user-role">super_admin</div>
+  );
+}
+
+function Header({time}){
+  return(
+    <div className="header">
+      <div className="header-brand">
+        <div className="cbic-logo">CBIC<br/>ELSM</div>
+        <div className="header-logo-block">
+          <div className="header-title">Electronic Lock Solution for Machines</div>
+          <div className="header-subtitle">CBIC · DGGI · BSNL EB Platinum Unit, Gurugram · CNTx-North Circle</div>
         </div>
       </div>
-      <div style="margin-top:10px;">
-        <button class="btn btn-outline btn-sm" onclick="doLogout()" style="width:100%;justify-content:center;">Sign Out</button>
+      <div className="header-divider"/>
+      <div className="portal-name">
+        <div className="portal-name-main">HSNS CESS PORTAL</div>
+        <div className="portal-name-sub">www.cbic-gst.gov.in · Tender: CNNCO-11/40/1/2026</div>
       </div>
-    </div>
-  </nav>
-
-  <!-- MAIN -->
-  <div class="main">
-    <div class="topbar">
-      <div class="topbar-left">
-        ELSM PORTAL - <span id="topbar-page">DASHBOARD</span>
-      </div>
-      <div class="topbar-right">
-        <div class="status-dot"></div>
-        <span style="font-size:11px;color:var(--muted);">SYSTEM ONLINE</span>
-        <span style="font-size:11px;color:var(--muted);font-family:var(--font-mono);" id="clock"></span>
-      </div>
-    </div>
-
-    <!-- â”€â”€ DASHBOARD PAGE â”€â”€ -->
-    <div class="page active" id="page-dashboard">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Dashboard</div>
-          <div class="page-subtitle">ESE / EUE WORKFLOW OVERVIEW - REAL-TIME</div>
-        </div>
-        <button class="btn btn-primary" onclick="showPage('requests'); openCreateModal()">
-          + New Request
-        </button>
-      </div>
-
-      <div class="kpi-grid" id="kpi-grid">
-        <div class="kpi-card blue"><div class="kpi-label">Total</div><div class="kpi-value" id="kpi-total">â€”</div></div>
-        <div class="kpi-card amber"><div class="kpi-label">Pending</div><div class="kpi-value" id="kpi-pending">â€”</div></div>
-        <div class="kpi-card blue"><div class="kpi-label">Approved</div><div class="kpi-value" id="kpi-approved">â€”</div></div>
-        <div class="kpi-card purple"><div class="kpi-label">In Progress</div><div class="kpi-value" id="kpi-inprogress">â€”</div></div>
-        <div class="kpi-card green"><div class="kpi-label">Completed</div><div class="kpi-value" id="kpi-completed">â€”</div></div>
-        <div class="kpi-card red"><div class="kpi-label">SLA Breached</div><div class="kpi-value" id="kpi-breached">â€”</div></div>
-      </div>
-
-      <!-- Recent requests preview -->
-      <div class="table-card">
-        <div class="table-header">
-          <div class="table-title">RECENT REQUESTS</div>
-          <button class="btn btn-outline btn-sm" onclick="showPage('requests')">View All â†’</button>
-        </div>
-        <div id="recent-table-body">
-          <div class="spinner-center"><div class="loading"></div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- â”€â”€ REQUESTS PAGE â”€â”€ -->
-    <div class="page" id="page-requests">
-      <div class="page-header">
-        <div>
-          <div class="page-title">ESE / EUE Requests</div>
-          <div class="page-subtitle">ELECTRONIC SEALING & UNSEALING WORKFLOW - CLAUSE 10.5</div>
-        </div>
-        <button class="btn btn-primary" onclick="openCreateModal()">+ New Request</button>
-      </div>
-
-      <div class="table-card">
-        <div class="table-header">
-          <div class="table-title">ALL REQUESTS</div>
-          <div class="table-filters">
-            <select id="filter-status" onchange="loadRequests()">
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="assigned">Assigned</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="rejected">Rejected</option>
-              <option value="sla_breached">SLA Breached</option>
-            </select>
-            <select id="filter-type" onchange="loadRequests()">
-              <option value="">All Types</option>
-              <option value="ese">ESE</option>
-              <option value="eue">EUE</option>
-            </select>
+      <div className="header-right">
+        <div className="badge-live"><div className="dot-live"/>Live</div>
+        <div className="time-chip">{time.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})}</div>
+        <div className="user-pill">
+          <div className="avatar">AN</div>
+          <div style={{lineHeight:1.3}}>
+            <div style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>Anuruddha Kumar</div>
+            <div style={{fontSize:10,color:'var(--text3)'}}>AGM (EB-Platinum) · Gurugram</div>
           </div>
         </div>
-        <div id="requests-table-wrap">
-          <div class="spinner-center"><div class="loading"></div></div>
-        </div>
       </div>
     </div>
-
-    <!-- â”€â”€ DEVICES PAGE (placeholder) â”€â”€ -->
-    <div class="page" id="page-devices">
-      <div class="page-header">
-        <div>
-          <div class="page-title">E-Lock Devices</div>
-          <div class="page-subtitle">DEVICE REGISTRY - COMING SOON</div>
-        </div>
-      </div>
-      <div class="table-card">
-        <div class="empty-state">
-          <div class="icon">â—ˆ</div>
-          <div class="msg">Device Management â€” Phase 3</div>
-          <div class="sub">E-Lock registry, health monitoring and battery tracking will appear here.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- â”€â”€ ALERTS PAGE (placeholder) â”€â”€ -->
-    <div class="page" id="page-alerts">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Alerts</div>
-          <div class="page-subtitle">TAMPER / BATTERY / GEO-FENCE - COMING SOON</div>
-        </div>
-      </div>
-      <div class="table-card">
-        <div class="empty-state">
-          <div class="icon">â—¬</div>
-          <div class="msg">Alert Management â€” Phase 3</div>
-          <div class="sub">Low battery, tamper, and geo-fence alerts will appear here.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- â”€â”€ AUDIT PAGE (placeholder) â”€â”€ -->
-    <div class="page" id="page-audit">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Audit Log</div>
-          <div class="page-subtitle">IMMUTABLE TRAIL - CLAUSE 2.9</div>
-        </div>
-      </div>
-      <div class="table-card">
-        <div class="empty-state">
-          <div class="icon">â‰¡</div>
-          <div class="msg">Audit Trail â€” Phase 4</div>
-          <div class="sub">Full immutable audit trail with role, timestamp, and geo-tag will appear here.</div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /main -->
-</div><!-- /app -->
-
-
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     MODALS
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
-
-<!-- Create Request Modal -->
-<div class="modal-overlay" id="modal-create">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">New ESE / EUE Request</div>
-      <button class="modal-close" onclick="closeModal('modal-create')">Ã—</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Event Type</label>
-        <select class="form-control" id="new-event-type">
-          <option value="ese">ESE â€” Electronic Sealing Event</option>
-          <option value="eue">EUE â€” Electronic Unsealing Event</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Machine ID</label>
-        <input type="text" class="form-control" id="new-machine-id" placeholder="Enter machine UUID" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">E-Lock ID (optional)</label>
-        <input type="text" class="form-control" id="new-elock-id" placeholder="Enter e-lock UUID (optional)" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Notes</label>
-        <textarea class="form-control" id="new-notes" placeholder="Additional details..."></textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-create')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitCreate()" id="create-btn">Submit Request</button>
-    </div>
-  </div>
-</div>
-
-<!-- Approve Modal -->
-<div class="modal-overlay" id="modal-approve">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Approve Request</div>
-      <button class="modal-close" onclick="closeModal('modal-approve')">Ã—</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Approving request: <span id="approve-req-num" style="color:var(--accent);font-family:var(--font-mono);"></span></p>
-      <div class="form-group">
-        <label class="form-label">Approval Notes (optional)</label>
-        <textarea class="form-control" id="approve-notes" placeholder="Optional notes..."></textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-approve')">Cancel</button>
-      <button class="btn btn-green" onclick="submitApprove()">âœ“ Approve</button>
-    </div>
-  </div>
-</div>
-
-<!-- Reject Modal -->
-<div class="modal-overlay" id="modal-reject">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Reject Request</div>
-      <button class="modal-close" onclick="closeModal('modal-reject')">Ã—</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Rejecting: <span id="reject-req-num" style="color:var(--red);font-family:var(--font-mono);"></span></p>
-      <div class="form-group">
-        <label class="form-label">Rejection Reason *</label>
-        <textarea class="form-control" id="reject-reason" placeholder="State reason for rejection..." required></textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-reject')">Cancel</button>
-      <button class="btn btn-red" onclick="submitReject()">âœ— Reject</button>
-    </div>
-  </div>
-</div>
-
-<!-- Assign Modal -->
-<div class="modal-overlay" id="modal-assign">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Assign Field Engineer</div>
-      <button class="modal-close" onclick="closeModal('modal-assign')">Ã—</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Assigning: <span id="assign-req-num" style="color:var(--accent);font-family:var(--font-mono);"></span></p>
-      <div class="form-group">
-        <label class="form-label">Field Engineer ID</label>
-        <input type="text" class="form-control" id="assign-engineer-id" placeholder="Enter engineer UUID" />
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-assign')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitAssign()">Assign Engineer</button>
-    </div>
-  </div>
-</div>
-
-<!-- Detail Modal -->
-<div class="modal-overlay" id="modal-detail">
-  <div class="modal" style="max-width:600px;">
-    <div class="modal-header">
-      <div class="modal-title">Request Detail</div>
-      <button class="modal-close" onclick="closeModal('modal-detail')">Ã—</button>
-    </div>
-    <div class="modal-body" id="detail-body">
-      <div class="spinner-center"><div class="loading"></div></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-detail')">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- Toast container -->
-<div class="toast-wrap" id="toast-wrap"></div>
-
-<script>
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// CONFIG
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-const API_BASE = window.location.hostname === 'localhost'
-  ? 'http://localhost:8000/api/v1'
-  : '/api/v1';  // for proxied production
-
-let authToken = localStorage.getItem('elsm_token') || '';
-let currentUser = JSON.parse(localStorage.getItem('elsm_user') || 'null');
-let activeRequestId = null;
-
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// CLOCK
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-function updateClock() {
-  const now = new Date();
-  document.getElementById('clock').textContent =
-    now.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// AUTH
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-async function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  const btn = document.getElementById('login-btn');
-  const errEl = document.getElementById('login-error');
-
-  errEl.style.display = 'none';
-  btn.innerHTML = '<span class="loading"></span> Signing in...';
-  btn.disabled = true;
-
-  try {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.detail || 'Login failed');
-    if (data.requires_2fa) throw new Error('2FA required â€” not yet supported in this UI');
-
-    authToken = data.access_token;
-    currentUser = { id: data.user_id, name: data.name, role: data.role };
-    localStorage.setItem('elsm_token', authToken);
-    localStorage.setItem('elsm_user', JSON.stringify(currentUser));
-
-    initApp();
-  } catch (e) {
-    errEl.textContent = e.message;
-    errEl.style.display = 'block';
-    btn.innerHTML = 'Sign In';
-    btn.disabled = false;
-  }
+  );
 }
 
-function doLogout() {
-  authToken = '';
-  currentUser = null;
-  localStorage.removeItem('elsm_token');
-  localStorage.removeItem('elsm_user');
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('login-page').style.display = 'flex';
-}
-
-function initApp() {
-  document.getElementById('login-page').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-
-  // Set user info
-  document.getElementById('user-name').textContent = currentUser.name;
-  document.getElementById('user-role').textContent = currentUser.role;
-  document.getElementById('user-avatar').textContent =
-    currentUser.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-
-  loadDashboard();
-}
-
-// Auto-login if token exists
-if (authToken && currentUser) {
-  initApp();
-}
-
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// API HELPER
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-async function api(method, path, body = null) {
-  const opts = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`,
-    },
-  };
-  if (body) opts.body = JSON.stringify(body);
-
-  const res = await fetch(`${API_BASE}${path}`, opts);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    if (res.status === 401) doLogout();
-    throw new Error((typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) || `HTTP ${res.status}`);
-  }
-  return data;
-}
-
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// NAVIGATION
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
-  document.getElementById(`page-${name}`).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => {
-    if (n.textContent.toLowerCase().includes(name.replace('requests', 'ese'))) {
-      n.classList.add('active');
-    }
-  });
-
-  const labels = { dashboard: 'DASHBOARD', requests: 'ESE/EUE REQUESTS', devices: 'E-LOCK DEVICES', alerts: 'ALERTS', audit: 'AUDIT LOG' };
-  document.getElementById('topbar-page').textContent = labels[name] || name.toUpperCase();
-
-  if (name === 'requests') loadRequests();
-}
-
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// DASHBOARD
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-async function loadDashboard() {
-  try {
-    const summary = await api('GET', '/ese-eue/summary');
-    document.getElementById('kpi-total').textContent = summary.total;
-    document.getElementById('kpi-pending').textContent = summary.pending;
-    document.getElementById('kpi-approved').textContent = summary.approved;
-    document.getElementById('kpi-inprogress').textContent = summary.in_progress;
-    document.getElementById('kpi-completed').textContent = summary.completed;
-    document.getElementById('kpi-breached').textContent = summary.sla_breached;
-  } catch (e) {
-    // Show mock data if API not connected
-    document.getElementById('kpi-total').textContent = '0';
-    document.getElementById('kpi-pending').textContent = '0';
-    document.getElementById('kpi-approved').textContent = '0';
-    document.getElementById('kpi-inprogress').textContent = '0';
-    document.getElementById('kpi-completed').textContent = '0';
-    document.getElementById('kpi-breached').textContent = '0';
-  }
-
-  try {
-    const reqs = await api('GET', '/ese-eue/?page_size=5');
-    renderRecentTable(reqs);
-  } catch (e) {
-    document.getElementById('recent-table-body').innerHTML = `<div class="empty-state"><div class="icon">â‡„</div><div class="msg">No requests yet</div><div class="sub">Create your first ESE/EUE request to get started.</div></div>`;
-  }
-}
-
-function renderRecentTable(reqs) {
-  const wrap = document.getElementById('recent-table-body');
-  if (!reqs.length) {
-    wrap.innerHTML = `<div class="empty-state"><div class="icon">â‡„</div><div class="msg">No requests yet</div><div class="sub">Create your first ESE/EUE request.</div></div>`;
-    return;
-  }
-  wrap.innerHTML = `<table>
-    <thead><tr>
-      <th>Ref No.</th><th>Type</th><th>Status</th><th>SLA Deadline</th><th>Requested</th>
-    </tr></thead>
-    <tbody>${reqs.map(r => `
-      <tr>
-        <td class="mono">${r.request_number}</td>
-        <td><span class="badge badge-${r.event_type}">${r.event_type.toUpperCase()}</span></td>
-        <td>${statusBadge(r.status)}</td>
-        <td class="mono" style="font-size:11px;">${r.sla_deadline ? fmtDate(r.sla_deadline) : 'â€”'}</td>
-        <td style="font-size:11px;color:var(--muted);">${fmtDate(r.requested_at)}</td>
-      </tr>`).join('')}
-    </tbody>
-  </table>`;
-}
-
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// REQUESTS TABLE
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-async function loadRequests() {
-  const wrap = document.getElementById('requests-table-wrap');
-  wrap.innerHTML = '<div class="spinner-center"><div class="loading"></div></div>';
-
-  const statusVal = document.getElementById('filter-status')?.value || '';
-  const typeVal = document.getElementById('filter-type')?.value || '';
-
-  let qs = '?page_size=50';
-  if (statusVal) qs += `&status=${statusVal}`;
-  if (typeVal) qs += `&event_type=${typeVal}`;
-
-  try {
-    const reqs = await api('GET', `/ese-eue/${qs}`);
-    renderRequestsTable(wrap, reqs);
-  } catch (e) {
-    wrap.innerHTML = `<div class="empty-state"><div class="icon">â‡„</div><div class="msg">Failed to load</div><div class="sub">${e.message}</div></div>`;
-  }
-}
-
-function renderRequestsTable(wrap, reqs) {
-  if (!reqs.length) {
-    wrap.innerHTML = `<div class="empty-state"><div class="icon">â‡„</div><div class="msg">No requests found</div><div class="sub">Try changing filters or create a new request.</div></div>`;
-    return;
-  }
-
-  const canApprove = ['super_admin', 'bsnl_admin'].includes(currentUser?.role);
-  const canAssign  = ['super_admin', 'bsnl_admin', 'nodal_officer'].includes(currentUser?.role);
-
-  wrap.innerHTML = `<table>
-    <thead><tr>
-      <th>Ref No.</th><th>Type</th><th>Status</th><th>SLA</th><th>Requested</th><th>Actions</th>
-    </tr></thead>
-    <tbody>${reqs.map(r => {
-      const slaPercent = slaProgress(r);
-      const actions = buildActions(r, canApprove, canAssign);
-      return `<tr>
-        <td><span class="mono" style="cursor:pointer;color:var(--accent);" onclick='openDetail("${r.id}")'>${r.request_number}</span></td>
-        <td><span class="badge badge-${r.event_type}">${r.event_type.toUpperCase()}</span></td>
-        <td>${statusBadge(r.status)}</td>
-        <td style="min-width:120px;">
-          <div style="font-size:10px;color:var(--muted);font-family:var(--font-mono);">${r.sla_deadline ? fmtDate(r.sla_deadline) : 'â€”'}</div>
-          ${r.sla_deadline ? `<div class="sla-bar-wrap"><div class="sla-bar ${slaPercent >= 100 ? 'breached' : slaPercent >= 80 ? 'warn' : 'ok'}" style="width:${Math.min(slaPercent,100)}%"></div></div>` : ''}
-        </td>
-        <td style="font-size:11px;color:var(--muted);">${fmtDate(r.requested_at)}</td>
-        <td><div class="action-row">${actions}</div></td>
-      </tr>`;
-    }).join('')}
-    </tbody>
-  </table>`;
-}
-
-function buildActions(r, canApprove, canAssign) {
-  const btns = [];
-  btns.push(`<button class="btn btn-outline btn-sm" onclick='openDetail("${r.id}")'>View</button>`);
-
-  if (canApprove && r.status === 'pending') {
-    btns.push(`<button class="btn btn-green btn-sm" onclick='openApprove("${r.id}", "${r.request_number}")'>âœ“</button>`);
-    btns.push(`<button class="btn btn-red btn-sm" onclick='openReject("${r.id}", "${r.request_number}")'>âœ—</button>`);
-  }
-  if (canAssign && r.status === 'approved') {
-    btns.push(`<button class="btn btn-primary btn-sm" onclick='openAssign("${r.id}", "${r.request_number}")'>Assign</button>`);
-  }
-  return btns.join('');
-}
-
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// DETAIL MODAL
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-async function openDetail(id) {
-  openModal('modal-detail');
-  document.getElementById('detail-body').innerHTML = '<div class="spinner-center"><div class="loading"></div></div>';
-
-  try {
-    const r = await api('GET', `/ese-eue/${id}`);
-    renderDetail(r);
-  } catch (e) {
-    document.getElementById('detail-body').innerHTML = `<p style="color:var(--red)">${e.message}</p>`;
-  }
-}
-
-function renderDetail(r) {
-  const sla = r.sla_record;
-  const le  = r.lock_event;
-
-  const steps = [
-    { label: 'Request Created', time: r.requested_at, done: true },
-    { label: 'Approved', time: r.approved_at, done: !!r.approved_at },
-    { label: 'Engineer Assigned', time: r.assigned_at, done: !!r.assigned_at },
-    { label: 'In Progress', time: null, done: ['in_progress','completed','sla_breached'].includes(r.status) },
-    { label: 'Completed', time: r.completed_at, done: !!r.completed_at },
+function Sidebar({active,setActive}){
+  const nav=[
+    {id:'dashboard',label:'Dashboard',icon:'dashboard'},
+    {id:'locks',label:'Lock Inventory',icon:'locks'},
+    {id:'events',label:'ESE / EUE Events',icon:'events'},
+    {id:'alerts',label:'Alerts & Notices',icon:'alerts',badge:2},
+    {id:'map',label:'Zone Coverage',icon:'map'},
+    {id:'sla',label:'SLA & Reports',icon:'sla'},
+    {id:'dggi',label:'DGGI Seal Tickets',icon:'dggi'},
   ];
-
-  const isActive = (i) => !steps[i].done && steps[i-1]?.done;
-
-  document.getElementById('detail-body').innerHTML = `
-    <div class="detail-grid">
-      <div class="detail-item">
-        <div class="detail-key">Ref No.</div>
-        <div class="detail-val mono">${r.request_number}</div>
-      </div>
-      <div class="detail-item">
-        <div class="detail-key">Status</div>
-        <div class="detail-val">${statusBadge(r.status)}</div>
-      </div>
-      <div class="detail-item">
-        <div class="detail-key">Event Type</div>
-        <div class="detail-val"><span class="badge badge-${r.event_type}">${r.event_type.toUpperCase()}</span></div>
-      </div>
-      <div class="detail-item">
-        <div class="detail-key">SLA Deadline</div>
-        <div class="detail-val mono" style="font-size:12px;">${r.sla_deadline ? fmtDate(r.sla_deadline) : 'â€”'}</div>
-      </div>
-      ${r.notes ? `<div class="detail-item" style="grid-column:1/-1">
-        <div class="detail-key">Notes</div>
-        <div class="detail-val" style="color:var(--muted);font-size:12px;">${r.notes}</div>
-      </div>` : ''}
-      ${r.rejection_reason ? `<div class="detail-item" style="grid-column:1/-1">
-        <div class="detail-key">Rejection Reason</div>
-        <div class="detail-val" style="color:var(--red);font-size:12px;">${r.rejection_reason}</div>
-      </div>` : ''}
-    </div>
-
-    ${sla ? `<div style="margin-bottom:20px;">
-      <div class="detail-key" style="margin-bottom:8px;">SLA STATUS</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <span style="font-size:12px;color:${sla.is_breached?'var(--red)':'var(--green)'};">
-          ${sla.is_breached ? `âš  BREACHED by ${sla.breach_duration_hours?.toFixed(1)}h` : 'âœ“ On Track'}
-        </span>
-        <span class="mono" style="font-size:10px;color:var(--muted);">Deadline: ${fmtDate(sla.sla_deadline)}</span>
-      </div>
-      <div class="sla-bar-wrap" style="height:8px;">
-        <div class="sla-bar ${sla.is_breached ? 'breached' : 'ok'}" style="width:${sla.is_breached?100:slaProgress(r)}%"></div>
-      </div>
-    </div>` : ''}
-
-    <div>
-      <div class="detail-key" style="margin-bottom:12px;">WORKFLOW TIMELINE</div>
-      <div class="timeline">
-        ${steps.map((s, i) => `
-          <div class="tl-step ${s.done ? 'done' : isActive(i) ? 'active' : ''}">
-            <div class="tl-label" style="color:${s.done?'var(--text)':'var(--muted)'}">${s.label}</div>
-            <div class="tl-time">${s.time ? fmtDate(s.time) : s.done ? 'Completed' : 'Pending'}</div>
-          </div>`).join('')}
-      </div>
-    </div>
-
-    ${le ? `<div style="margin-top:20px;">
-      <div class="detail-key" style="margin-bottom:8px;">LOCK EVENT RECORD</div>
-      <div style="background:var(--bg3);border-radius:8px;padding:12px;font-size:12px;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <div><span style="color:var(--muted);">Method: </span><span class="mono">${le.unlock_method || 'â€”'}</span></div>
-          <div><span style="color:var(--muted);">OTP Used: </span><span>${le.otp_used ? 'âœ“ Yes' : 'âœ— No'}</span></div>
-          <div><span style="color:var(--muted);">GPS: </span><span class="mono">${le.gps_lat ? `${le.gps_lat.toFixed(4)}, ${le.gps_lng.toFixed(4)}` : 'Not recorded'}</span></div>
-          <div><span style="color:var(--muted);">Timestamp: </span><span class="mono" style="font-size:11px;">${fmtDate(le.event_timestamp)}</span></div>
+  return(
+    <div className="sidebar">
+      <div className="nav-section">Main Menu</div>
+      {nav.map(n=>(
+        <div key={n.id} className={`nav-item${active===n.id?' active':''}`} onClick={()=>setActive(n.id)}>
+          <NavIcon name={n.icon}/>{n.label}
+          {n.badge&&<span className="nav-badge">{n.badge}</span>}
+        </div>
+      ))}
+      <div className="nav-section">Administration</div>
+      <div className="nav-item"><NavIcon name="billing"/>Billing &amp; Invoicing</div>
+      <div className="nav-item"><NavIcon name="settings"/>Settings</div>
+      <div className="sidebar-footer">
+        <div style={{fontSize:10,color:'var(--text3)',lineHeight:1.7}}>
+          <div style={{fontFamily:'var(--mono)',fontWeight:600,color:'var(--navy)',marginBottom:2}}>ELSM Portal v2.4.1</div>
+          <div>Advisory No. 04/2026 · DG Systems, Chennai</div>
+          <div style={{marginTop:4,color:'var(--teal)',fontWeight:600}}>© 2026 CBIC, Govt. of India</div>
         </div>
       </div>
-    </div>` : ''}
-  `;
+    </div>
+  );
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// MODALS â€” CREATE / APPROVE / REJECT / ASSIGN
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-function openCreateModal() {
-  openModal('modal-create');
+// ─── Chart components ───────────────────────────────────────────
+function LineChart({labels,datasets}){
+  const ref=useRef();const chartRef=useRef();
+  useEffect(()=>{
+    if(chartRef.current)chartRef.current.destroy();
+    chartRef.current=new Chart(ref.current,{type:'line',data:{labels,datasets:datasets.map(d=>({...d,tension:.4,pointRadius:4,pointHoverRadius:6,borderWidth:2}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a237e',borderColor:'#3949ab',borderWidth:1,titleColor:'#fff',bodyColor:'#c5cae9'}},scales:{x:{grid:{color:'rgba(26,35,126,.08)',drawTicks:false},ticks:{color:'#6e6e8a',font:{size:11}}},y:{grid:{color:'rgba(26,35,126,.08)',drawTicks:false},ticks:{color:'#6e6e8a',font:{size:11}},beginAtZero:true}}}});
+    return()=>chartRef.current?.destroy();
+  },[]);
+  return <div className="chart-wrap" style={{height:190}}><canvas ref={ref}/></div>;
 }
 
-async function submitCreate() {
-  const btn = document.getElementById('create-btn');
-  const eventType = document.getElementById('new-event-type').value;
-  const machineId = document.getElementById('new-machine-id').value.trim();
-  const elockId   = document.getElementById('new-elock-id').value.trim();
-  const notes     = document.getElementById('new-notes').value.trim();
+function BarChart({labels,data,color}){
+  const ref=useRef();const chartRef=useRef();
+  useEffect(()=>{
+    if(chartRef.current)chartRef.current.destroy();
+    chartRef.current=new Chart(ref.current,{type:'bar',data:{labels,datasets:[{data,backgroundColor:color||'rgba(26,35,126,.2)',borderColor:color||'rgba(26,35,126,.6)',borderWidth:1,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a237e',borderColor:'#3949ab',borderWidth:1,titleColor:'#fff',bodyColor:'#c5cae9'}},scales:{x:{grid:{display:false},ticks:{color:'#6e6e8a',font:{size:11}}},y:{grid:{color:'rgba(26,35,126,.08)',drawTicks:false},ticks:{color:'#6e6e8a',font:{size:11}}}}}});
+    return()=>chartRef.current?.destroy();
+  },[]);
+  return <div className="chart-wrap" style={{height:150}}><canvas ref={ref}/></div>;
+}
 
-  if (!machineId) return showToast('Machine ID is required', 'error');
+function SLAGauge({value}){
+  const r=64,cx=84,cy=84,stroke=9,circ=2*Math.PI*r,arc=circ*.75,fill=arc*(value/100);
+  const color=value>=99.5?'#2e7d32':value>=98?'#e65100':'#c62828';
+  return(
+    <svg width="168" height="120" viewBox="0 0 168 120">
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e8eaf6" strokeWidth={stroke} strokeDasharray={`${arc} ${circ}`} strokeDashoffset={-circ*.125} strokeLinecap="round"/>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={`${fill} ${circ}`} strokeDashoffset={-circ*.125} strokeLinecap="round" style={{transition:'stroke-dasharray .8s'}}/>
+      <text x={cx} y={cx-4} textAnchor="middle" fill={color} fontFamily="'Noto Sans Mono'" fontSize="20" fontWeight="700">{value}%</text>
+      <text x={cx} y={cx+14} textAnchor="middle" fill="#6e6e8a" fontFamily="'Noto Sans'" fontSize="10">Uptime SLA</text>
+      <text x="16" y="112" fill="#9999b3" fontFamily="'Noto Sans'" fontSize="9">0%</text>
+      <text x="140" y="112" fill="#9999b3" fontFamily="'Noto Sans'" fontSize="9">100%</text>
+    </svg>
+  );
+}
 
-  btn.innerHTML = '<span class="loading"></span> Submitting...';
-  btn.disabled = true;
+function KPI({label,value,change,changeDir,accent,delay}){
+  return(
+    <div className="kpi animate-in" style={{'--kpi-accent':accent,animationDelay:`${delay||0}s`}}>
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      <div className={`kpi-change ${changeDir}`}>{changeDir==='up'?'▲':changeDir==='down'?'▼':'—'} {change}</div>
+    </div>
+  );
+}
 
-  try {
-    const body = { event_type: eventType, machine_id: machineId, notes: notes || null };
-    if (elockId) body.e_lock_id = elockId;
+function AlertCard({a}){
+  return(
+    <div className={`alert ${a.type}`}>
+      <div style={{flex:1}}>
+        <div className="alert-title">{a.title}</div>
+        <div className="alert-body">{a.body}</div>
+        <div style={{marginTop:5}}><span className="chip">{a.city}</span></div>
+      </div>
+      <div className="alert-time">{a.time}</div>
+    </div>
+  );
+}
 
-    await api('POST', '/ese-eue/', body);
-    closeModal('modal-create');
-    showToast('Request created successfully', 'ok');
-    loadDashboard();
-    if (document.getElementById('page-requests').classList.contains('active')) loadRequests();
-  } catch (e) {
-    showToast(e.message, 'error');
-  } finally {
-    btn.innerHTML = 'Submit Request';
-    btn.disabled = false;
+// ─── Pages ──────────────────────────────────────────────────────
+function Dashboard(){
+  const totalLocks=LOCKS.length,online=LOCKS.filter(l=>l.status==='online').length,offline=LOCKS.filter(l=>l.status==='offline').length,breaches=LOCKS.filter(l=>l.status==='breach').length,lowBattery=LOCKS.filter(l=>l.battery<25).length;
+  const slaAvg=(MONTHLY_SLA.reduce((a,b)=>a+b)/MONTHLY_SLA.length).toFixed(1);
+  return(
+    <div>
+      <div className="page-header">
+        <div className="breadcrumb"><a href="#">Home</a> <span>/</span> Dashboard</div>
+        <div className="page-title">Operations Dashboard</div>
+        <div className="page-subtitle">Real-time monitoring · BSNL EB Gurgaon Platinum Unit · PAN India HSNS Cess e-Lock Deployment</div>
+      </div>
+      <div className="kpi-grid">
+        <KPI label="Total E-Locks" value={totalLocks} change="4 new this week" changeDir="up" accent="#1a237e" delay={.04}/>
+        <KPI label="Online / Connected" value={online} change={`${((online/totalLocks)*100).toFixed(0)}% connected`} changeDir="up" accent="#2e7d32" delay={.08}/>
+        <KPI label="Critical Alerts" value={breaches+offline} change={`${lowBattery} low battery`} changeDir={breaches>0?'down':'neutral'} accent="#c62828" delay={.12}/>
+        <KPI label="Avg SLA" value={`${slaAvg}%`} change="Above 99% target" changeDir="up" accent="#e65100" delay={.16}/>
+      </div>
+      <div className="grid-65" style={{marginBottom:14}}>
+        <div className="card animate-in stagger-1">
+          <div className="card-title">ESE / EUE Activity (Last 6 Months)<div style={{display:'flex',gap:16}}>
+            <span style={{display:'flex',alignItems:'center',gap:5,fontSize:11}}><span style={{width:10,height:10,borderRadius:2,background:'#1a237e',display:'inline-block'}}/>Sealing (ESE)</span>
+            <span style={{display:'flex',alignItems:'center',gap:5,fontSize:11}}><span style={{width:10,height:10,borderRadius:2,background:'#e65100',display:'inline-block'}}/>Unsealing (EUE)</span>
+          </div></div>
+          <LineChart labels={months} datasets={[{label:'ESE',data:MONTHLY_ESE,borderColor:'#1a237e',backgroundColor:'rgba(26,35,126,.06)'},{label:'EUE',data:MONTHLY_EUE,borderColor:'#e65100',backgroundColor:'rgba(230,81,0,.06)'}]}/>
+        </div>
+        <div className="card animate-in stagger-2">
+          <div className="card-title">SLA Performance</div>
+          <div style={{display:'flex',justifyContent:'center'}}><SLAGauge value={parseFloat(slaAvg)}/></div>
+          <div style={{display:'flex',justifyContent:'space-between',padding:'0 4px',marginTop:4}}>
+            {months.map((m,i)=>(
+              <div key={m} style={{textAlign:'center'}}>
+                <div style={{fontSize:9,color:'var(--text3)',fontFamily:'var(--mono)',marginBottom:2}}>{m}</div>
+                <div style={{fontSize:11,fontWeight:700,color:MONTHLY_SLA[i]>=99?'var(--green)':'var(--amber)'}}>{MONTHLY_SLA[i]}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="grid-2" style={{marginBottom:14}}>
+        <div className="card animate-in stagger-3">
+          <div className="card-title">Recent Alerts &amp; Notices<span className="card-title-action">View All →</span></div>
+          {ALERTS.slice(0,3).map(a=><AlertCard key={a.id} a={a}/>)}
+        </div>
+        <div className="card animate-in stagger-4">
+          <div className="card-title">Pending ESE/EUE (SLA Tracking)<span className="card-title-action">Manage →</span></div>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Event ID</th><th>Machine</th><th>City</th><th>Status</th><th>SLA</th></tr></thead>
+              <tbody>
+                {ESE_EVENTS.filter(e=>e.status!=='Completed').map(e=>(
+                  <tr key={e.id}>
+                    <td><span className="chip">{e.id}</span></td>
+                    <td style={{fontFamily:'var(--mono)',fontSize:11}}>{e.machine}</td>
+                    <td style={{color:'var(--text2)'}}>{e.city}</td>
+                    <td><span className={`pill ${e.status==='In Progress'?'charging':e.status==='Breach'?'breach':'sealed'}`}>{e.status}</span></td>
+                    <td style={{fontSize:10.5,fontFamily:'var(--mono)',color:e.sla.includes('✗')?'var(--red)':e.sla.includes('⚠')?'var(--amber)':'var(--text3)'}}>{e.sla}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div className="card animate-in">
+        <div className="card-title">Battery Distribution (All Deployed Locks)
+          <span style={{fontSize:11,color:'var(--text2)',fontWeight:500}}><span style={{color:'var(--red)',fontWeight:700}}>{lowBattery} critical</span> · {LOCKS.filter(l=>l.battery<50).length} below 50%</span>
+        </div>
+        <BarChart labels={['0–20%','21–40%','41–60%','61–80%','81–100%']} data={[LOCKS.filter(l=>l.battery<=20).length,LOCKS.filter(l=>l.battery>20&&l.battery<=40).length,LOCKS.filter(l=>l.battery>40&&l.battery<=60).length,LOCKS.filter(l=>l.battery>60&&l.battery<=80).length,LOCKS.filter(l=>l.battery>80).length]} color="rgba(26,35,126,.5)"/>
+      </div>
+    </div>
+  );
+}
+
+function LockInventory(){
+  const [filter,setFilter]=useState('all');
+  const [search,setSearch]=useState('');
+  const filtered=useMemo(()=>LOCKS.filter(l=>{if(filter!=='all'&&l.status!==filter)return false;if(search&&!l.id.toLowerCase().includes(search.toLowerCase())&&!l.city.toLowerCase().includes(search.toLowerCase())&&!l.machine.toLowerCase().includes(search.toLowerCase()))return false;return true;}),[filter,search]);
+  return(
+    <div>
+      <div className="page-header">
+        <div className="breadcrumb"><a href="#">Home</a> <span>/</span> Lock Inventory</div>
+        <div className="page-title">E-Lock Inventory</div>
+        <div className="page-subtitle">All deployed electronic locks · HSNS Cess machines across PAN India</div>
+      </div>
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
+        {[{l:'Total',v:LOCKS.length,a:'#1a237e'},{l:'Online',v:LOCKS.filter(l=>l.status==='online').length,a:'#2e7d32'},{l:'Offline',v:LOCKS.filter(l=>l.status==='offline').length,a:'#c62828'},{l:'Charging',v:LOCKS.filter(l=>l.status==='charging').length,a:'#e65100'},{l:'Breach',v:LOCKS.filter(l=>l.status==='breach').length,a:'#c62828'}].map(k=>(
+          <div key={k.l} className="kpi" style={{'--kpi-accent':k.a}}>
+            <div className="kpi-label">{k.l}</div>
+            <div className="kpi-value" style={{fontSize:24}}>{k.v}</div>
+          </div>
+        ))}
+      </div>
+      <div className="card" style={{marginTop:14}}>
+        <div className="filter-bar">
+          {['all','online','offline','charging','breach'].map(f=>(
+            <button key={f} className={`filter-btn${filter===f?' active':''}`} onClick={()=>setFilter(f)}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>
+          ))}
+          <input className="search-input" placeholder="Search by Lock ID, city or machine…" value={search} onChange={e=>setSearch(e.target.value)}/>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Lock ID</th><th>Machine No.</th><th>City</th><th>Tier</th><th>Status</th><th>Battery</th><th>Last Ping</th><th>Days Active</th></tr></thead>
+            <tbody>
+              {filtered.map(l=>(
+                <tr key={l.id}>
+                  <td><span className="chip">{l.id}</span></td>
+                  <td style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--text2)'}}>{l.machine}</td>
+                  <td style={{fontWeight:500}}>{l.city}</td>
+                  <td><span style={{fontSize:10,padding:'2px 7px',borderRadius:3,background:l.tier===1?'var(--navy-light)':'var(--teal-light)',color:l.tier===1?'var(--navy)':'var(--teal)',fontWeight:700}}>Tier {l.tier}</span></td>
+                  <td><span className={`pill ${l.status}`}>{l.status.charAt(0).toUpperCase()+l.status.slice(1)}</span></td>
+                  <td>
+                    <div style={{display:'flex',alignItems:'center',gap:7}}>
+                      <div style={{flex:1,minWidth:55}}><div className="progress-bar"><div className="progress-fill" style={{width:`${l.battery}%`,background:l.battery<25?'var(--red)':l.battery<50?'var(--amber)':'var(--green)'}}/></div></div>
+                      <span style={{fontSize:10.5,fontFamily:'var(--mono)',color:l.battery<25?'var(--red)':'var(--text2)',minWidth:28}}>{l.battery}%</span>
+                    </div>
+                  </td>
+                  <td style={{fontSize:11,color:'var(--text2)',fontFamily:'var(--mono)'}}>{l.lastPing}</td>
+                  <td style={{fontSize:11,fontFamily:'var(--mono)',color:'var(--text3)'}}>{l.installedDays}d</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{marginTop:10,fontSize:11,color:'var(--text3)'}}>Showing {filtered.length} of {LOCKS.length} locks</div>
+      </div>
+    </div>
+  );
+}
+
+function EventsPage(){
+  const [typeFilter,setTypeFilter]=useState('all');
+  return(
+    <div>
+      <div className="page-header">
+        <div className="breadcrumb"><a href="#">Home</a> <span>/</span> ESE / EUE Events</div>
+        <div className="page-title">ESE / EUE Event Log</div>
+        <div className="page-subtitle">Electronic Sealing &amp; Unsealing events · SLA compliance tracking</div>
+      </div>
+      <div className="grid-2" style={{marginBottom:14}}>
+        <div className="card">
+          <div className="card-title">Event Volume — Q1 FY 2026</div>
+          <div style={{display:'flex',gap:20,marginBottom:12}}>
+            {[{l:'Seal Events',v:'74',c:'var(--navy)'},{l:'Unseal Events',v:'55',c:'var(--saffron)'},{l:'Within SLA',v:'96%',c:'var(--green)'},{l:'SLA Breach',v:'5',c:'var(--red)'}].map(s=>(
+              <div key={s.l}><div style={{fontSize:10,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>{s.l}</div><div style={{fontSize:22,fontWeight:700,fontFamily:'var(--mono)',color:s.c}}>{s.v}</div></div>
+            ))}
+          </div>
+          <BarChart labels={months} data={MONTHLY_ESE.map((e,i)=>e+MONTHLY_EUE[i])} color="rgba(26,35,126,.45)"/>
+        </div>
+        <div className="card">
+          <div className="card-title">SLA Window Status</div>
+          {[{l:'Within Window (Day 1)',n:12,pct:48,c:'var(--green)'},{l:'Mid Window (Day 2)',n:8,pct:32,c:'var(--amber)'},{l:'Approaching Cutoff (Day 3)',n:3,pct:12,c:'var(--red)'},{l:'SLA Breached',n:2,pct:8,c:'var(--red)'}].map(s=>(
+            <div key={s.l} style={{marginBottom:12}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
+                <span style={{fontSize:11.5,color:'var(--text2)'}}>{s.l}</span>
+                <span style={{fontSize:11.5,fontWeight:700,fontFamily:'var(--mono)',color:s.c}}>{s.n}</span>
+              </div>
+              <div className="progress-bar"><div className="progress-fill" style={{width:`${s.pct}%`,background:s.c}}/></div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-title">Event Register</div>
+        <div className="filter-bar">
+          {['all','Seal','Unseal'].map(f=>(
+            <button key={f} className={`filter-btn${typeFilter===f?' active':''}`} onClick={()=>setTypeFilter(f)}>{f}</button>
+          ))}
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Event ID</th><th>Type</th><th>Machine</th><th>City</th><th>Officer</th><th>Date</th><th>Status</th><th>SLA</th></tr></thead>
+            <tbody>
+              {ESE_EVENTS.filter(e=>typeFilter==='all'||e.type===typeFilter).map(e=>(
+                <tr key={e.id}>
+                  <td><span className="chip">{e.id}</span></td>
+                  <td><span style={{fontSize:10.5,padding:'2px 7px',borderRadius:3,background:e.type==='Seal'?'var(--navy-light)':'var(--amber-light)',color:e.type==='Seal'?'var(--navy)':'var(--saffron)',fontWeight:700}}>{e.type}</span></td>
+                  <td style={{fontFamily:'var(--mono)',fontSize:11}}>{e.machine}</td>
+                  <td>{e.city}</td>
+                  <td style={{color:'var(--text2)'}}>{e.officer}</td>
+                  <td style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--text3)'}}>{e.date}</td>
+                  <td><span className={`pill ${e.status==='Completed'?'online':e.status==='In Progress'?'charging':e.status==='Breach'?'breach':'sealed'}`}>{e.status}</span></td>
+                  <td style={{fontSize:10.5,fontFamily:'var(--mono)',color:e.sla.includes('✗')?'var(--red)':e.sla.includes('⚠')?'var(--amber)':'var(--text3)'}}>{e.sla}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AlertsPage(){
+  return(
+    <div>
+      <div className="page-header">
+        <div className="breadcrumb"><a href="#">Home</a> <span>/</span> Alerts</div>
+        <div className="page-title">Alerts &amp; System Notices</div>
+        <div className="page-subtitle">Active alerts · tamper detection · battery warnings · SLA violations</div>
+      </div>
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(3,1fr)',marginBottom:14}}>
+        <div className="kpi" style={{'--kpi-accent':'var(--red)'}}><div className="kpi-label">Critical</div><div className="kpi-value" style={{fontSize:24,color:'var(--red)'}}>{ALERTS.filter(a=>a.type==='critical').length}</div></div>
+        <div className="kpi" style={{'--kpi-accent':'var(--amber)'}}><div className="kpi-label">Warning</div><div className="kpi-value" style={{fontSize:24,color:'var(--amber)'}}>{ALERTS.filter(a=>a.type==='warning').length}</div></div>
+        <div className="kpi" style={{'--kpi-accent':'var(--blue)'}}><div className="kpi-label">Informational</div><div className="kpi-value" style={{fontSize:24,color:'var(--blue)'}}>{ALERTS.filter(a=>a.type==='info').length}</div></div>
+      </div>
+      <div className="card">
+        <div className="card-title">All Active Alerts <span style={{fontSize:11,color:'var(--text3)',fontWeight:400}}>Auto-refreshes every 60 seconds</span></div>
+        {ALERTS.map(a=><AlertCard key={a.id} a={a}/>)}
+      </div>
+    </div>
+  );
+}
+
+function ZoneCoverage(){
+  const [tierFilter,setTierFilter]=useState('all');
+  const filtered=CITIES.filter(c=>tierFilter==='all'||(tierFilter==='tier1'&&c.tier===1)||(tierFilter==='tier2'&&c.tier===2));
+  return(
+    <div>
+      <div className="page-header">
+        <div className="breadcrumb"><a href="#">Home</a> <span>/</span> Zone Coverage</div>
+        <div className="page-title">Zone Coverage Map</div>
+        <div className="page-subtitle">Geographic distribution · deployed e-locks across GST jurisdictions · India</div>
+      </div>
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(4,1fr)',marginBottom:14}}>
+        <KPI label="Total Cities" value={CITIES.length} change="" changeDir="neutral" accent="#1a237e"/>
+        <KPI label="Tier 1 Cities" value={CITIES.filter(c=>c.tier===1).length} change="" changeDir="neutral" accent="#2e7d32"/>
+        <KPI label="Tier 2 Cities" value={CITIES.filter(c=>c.tier===2).length} change="" changeDir="neutral" accent="#e65100"/>
+        <KPI label="Total Locks" value={CITIES.reduce((a,c)=>a+c.locks,0)} change="" changeDir="neutral" accent="#1565c0"/>
+      </div>
+      <div className="card">
+        <div className="filter-bar" style={{marginBottom:16}}>
+          {[['all','All Zones'],['tier1','Tier 1 Cities'],['tier2','Tier 2 Cities']].map(([v,l])=>(
+            <button key={v} className={`filter-btn${tierFilter===v?' active':''}`} onClick={()=>setTierFilter(v)}>{l}</button>
+          ))}
+        </div>
+        <div className="map-grid">
+          {filtered.map(c=>(
+            <div key={c.name} className="map-city">
+              <div className="map-city-name">{c.name}</div>
+              <div className="map-city-count">{c.locks}</div>
+              <div className="map-city-sla" style={{color:c.sla>=99?'var(--green)':c.sla>=98?'var(--amber)':'var(--red)'}}>{c.sla}% SLA</div>
+              <div className="progress-bar" style={{marginTop:5}}><div className="progress-fill" style={{width:`${(c.online/c.locks)*100}%`,background:'var(--green)'}}/></div>
+              <div style={{fontSize:9.5,color:'var(--text3)',marginTop:2}}>{c.online}/{c.locks} online</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SLAReports(){
+  return(
+    <div>
+      <div className="page-header">
+        <div className="breadcrumb"><a href="#">Home</a> <span>/</span> SLA &amp; Reports</div>
+        <div className="page-title">SLA &amp; Performance Reports</div>
+        <div className="page-subtitle">March 2026 · Contract Period: 2 Years (Apr 2026 – Mar 2028) · BSNL EB Platinum Unit</div>
+      </div>
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(4,1fr)',marginBottom:14}}>
+        <KPI label="Portal Uptime" value="99.4%" change="Target: 99.9%" changeDir="up" accent="#2e7d32"/>
+        <KPI label="Avg Lock/Unlock" value="1.8d" change="SLA: 3 working days" changeDir="up" accent="#1a237e"/>
+        <KPI label="SLA Breach Events" value="5" change="Cap: 3/quarter" changeDir="down" accent="#e65100"/>
+        <KPI label="Penalty Accrued" value="₹12,400" change="Of quarterly invoice" changeDir="down" accent="#c62828"/>
+      </div>
+      <div className="grid-2" style={{marginBottom:14}}>
+        <div className="card">
+          <div className="card-title">Monthly SLA Trend</div>
+          <LineChart labels={months} datasets={[{label:'SLA %',data:MONTHLY_SLA,borderColor:'#2e7d32',backgroundColor:'rgba(46,125,50,.06)'}]}/>
+          <div style={{marginTop:10,display:'flex',justifyContent:'space-between',fontSize:11,color:'var(--text3)'}}>
+            <span>Target: 99.9%</span><span style={{color:'var(--red)'}}>Penalty threshold: &lt; 99%</span>
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-title">SLA Scorecard · Q1 FY 2026</div>
+          {[
+            {metric:'Portal Availability (24×7)',required:'99.90%',actual:'99.4%',status:'⚠ Minor Breach',c:'var(--amber)'},
+            {metric:'Lock/Unlock (3-day window)',required:'100%',actual:'96.2%',status:'⚠ 5 Delays',c:'var(--amber)'},
+            {metric:'Battery Alert Response',required:'≤ 4 hrs',actual:'2.3 hrs avg',status:'✓ Pass',c:'var(--green)'},
+            {metric:'Geo-fence Alert Dispatch',required:'Immediate',actual:'< 5 min',status:'✓ Pass',c:'var(--green)'},
+            {metric:'SLA Report Submission',required:'7th of month',actual:'On time',status:'✓ Pass',c:'var(--green)'},
+            {metric:'Max Quarterly Breaches',required:'≤ 3',actual:'5',status:'✗ Breach',c:'var(--red)'},
+          ].map(r=>(
+            <div key={r.metric} style={{display:'grid',gridTemplateColumns:'1.6fr .8fr .8fr .8fr',gap:6,alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
+              <div style={{fontSize:11.5,color:'var(--text2)'}}>{r.metric}</div>
+              <div style={{fontSize:10.5,fontFamily:'var(--mono)',color:'var(--text3)'}}>{r.required}</div>
+              <div style={{fontSize:10.5,fontFamily:'var(--mono)'}}>{r.actual}</div>
+              <div style={{fontSize:11,fontWeight:700,color:r.c}}>{r.status}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-title">Penalty Calculation · Q1 FY 2026
+          <button className="btn-outline" style={{fontSize:11}}>Download PDF</button>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Event Ref.</th><th>Affected Lock</th><th>City</th><th>Delay</th><th>Penalty Type</th><th>Amount (₹)</th></tr></thead>
+            <tbody>
+              {[{event:'ESE-2018',lock:'EL-1031',city:'Patna I',delay:'+1 day',type:'10% daily × 1d',amt:'₹ 820'},{event:'ESE-2015',lock:'EL-1019',city:'Bhopal',delay:'+4 days',type:'100% monthly lock rental',amt:'₹ 4,100'},{event:'App downtime',lock:'Portal',city:'All India',delay:'2.1 hrs',type:'1% quarterly invoice (99%–99.9%)',amt:'₹ 3,200'},{event:'Q1 Extra Breach',lock:'Multiple',city:'Various',delay:'2 extra events',type:'1% per event × 2',amt:'₹ 4,280'}].map((r,i)=>(
+                <tr key={i}>
+                  <td><span className="chip">{r.event}</span></td>
+                  <td style={{fontFamily:'var(--mono)',fontSize:11}}>{r.lock}</td>
+                  <td>{r.city}</td>
+                  <td style={{color:'var(--red)',fontFamily:'var(--mono)',fontSize:11}}>{r.delay}</td>
+                  <td style={{color:'var(--text2)',fontSize:11}}>{r.type}</td>
+                  <td style={{fontFamily:'var(--mono)',fontWeight:700,color:'var(--saffron)'}}>{r.amt}</td>
+                </tr>
+              ))}
+              <tr style={{background:'var(--navy-light)'}}><td colSpan={5} style={{fontWeight:700,textAlign:'right',color:'var(--navy)',fontSize:12}}>Total Penalty This Quarter</td><td style={{fontFamily:'var(--mono)',fontWeight:700,color:'var(--red)',fontSize:12}}>₹ 12,400</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── DGGI Tickets ────────────────────────────────────────────────
+function DGGITickets(){
+  const [tickets,setTickets]=useState(INITIAL_TICKETS);
+  const [view,setView]=useState('list');
+  const [selected,setSelected]=useState(null);
+  const [filterStatus,setFilterStatus]=useState('all');
+  const [filterType,setFilterType]=useState('all');
+  const [form,setForm]=useState({type:'ESE',firm:'',gstin:'',zone:'Delhi Zone',commissionerate:'Delhi South',division:'Division I',range:'Range I',rangeOfficer:'',machine:'',hsnsReg:'',requestRef:'',notes:'',priority:'Normal'});
+  const [showSuccess,setShowSuccess]=useState('');
+  const filtered=tickets.filter(t=>(filterStatus==='all'||t.status===filterStatus)&&(filterType==='all'||t.type===filterType));
+  const statusColor={New:'var(--blue)',Assigned:'var(--navy)',InProgress:'var(--amber)','In Progress':'var(--amber)',Completed:'var(--green)',Pending:'var(--amber)',Breach:'var(--red)'};
+  const priorityColor={Normal:'var(--text3)',High:'var(--amber)',Urgent:'var(--saffron)',Critical:'var(--red)'};
+  function createTicket(){
+    const id=`TKT-2026-00${48+tickets.length-INITIAL_TICKETS.length}`;
+    setTickets(prev=>[{...form,id,machineReg:'',status:'New',requestDate:new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}),lockId:'',city:form.commissionerate},...prev]);
+    setShowSuccess(id);setView('list');setTimeout(()=>setShowSuccess(''),5000);
   }
+  const comms=GST_HIERARCHY.commissionerates[form.zone]||[];
+
+  if(view==='create') return(
+    <div>
+      <div className="page-header">
+        <div className="breadcrumb"><a href="#" onClick={()=>setView('list')}>Home</a> <span>/</span> <a href="#" onClick={()=>setView('list')}>DGGI Seal Tickets</a> <span>/</span> New Ticket</div>
+        <div className="page-title">Create Sealing / Unsealing Ticket</div>
+        <div className="page-subtitle">Range officer creates ESE/EUE ticket on receipt of manufacturer request (email/letter)</div>
+      </div>
+      <div className="info-box" style={{marginBottom:16}}>
+        <strong>Reference:</strong> HSNS Cess Act, 2025 (notified 16.12.2025, effective 01.02.2026) · Advisory No. 04/2026 · Form HSNS DEC-01 · Portal: www.cbic-gst.gov.in
+      </div>
+      <div className="grid-2">
+        <div className="card">
+          <div className="card-title">Request Details</div>
+          <div className="form-group">
+            <label className="form-label">Event Type *</label>
+            <div style={{display:'flex',gap:8}}>
+              {['ESE','EUE'].map(t=>(
+                <button key={t} onClick={()=>setForm(f=>({...f,type:t}))} style={{flex:1,padding:'10px',borderRadius:4,border:`2px solid ${form.type===t?'var(--navy)':'var(--border)'}`,background:form.type===t?'var(--navy)':'#fff',color:form.type===t?'#fff':'var(--text2)',cursor:'pointer',fontFamily:'var(--font)',fontWeight:700,fontSize:12.5,transition:'all .12s'}}>
+                  {t==='ESE'?'🔒 Electronic Sealing (ESE)':'🔓 Electronic Unsealing (EUE)'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Priority Level</label>
+            <div style={{display:'flex',gap:6}}>
+              {['Normal','High','Urgent','Critical'].map(p=>(
+                <button key={p} onClick={()=>setForm(f=>({...f,priority:p}))} style={{flex:1,padding:'7px 4px',borderRadius:4,border:`1.5px solid ${form.priority===p?priorityColor[p]:'var(--border)'}`,background:form.priority===p?'var(--navy-xlight)':'#fff',color:form.priority===p?priorityColor[p]:'var(--text3)',cursor:'pointer',fontFamily:'var(--font)',fontSize:11,fontWeight:700,transition:'all .12s'}}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="form-group" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div><label className="form-label">HSNS Reg. No. *</label><input className="form-input" style={{fontFamily:'var(--mono)',fontSize:12}} placeholder="CHTPR0365MHS0XXX" value={form.hsnsReg} onChange={e=>setForm(f=>({...f,hsnsReg:e.target.value}))}/></div>
+            <div><label className="form-label">Machine No. *</label><input className="form-input" style={{fontFamily:'var(--mono)',fontSize:12}} placeholder="M-XXX-000" value={form.machine} onChange={e=>setForm(f=>({...f,machine:e.target.value}))}/></div>
+          </div>
+          <div className="form-group" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div><label className="form-label">Firm / Trade Name *</label><input className="form-input" placeholder="M/s Company Name" value={form.firm} onChange={e=>setForm(f=>({...f,firm:e.target.value}))}/></div>
+            <div><label className="form-label">GSTIN</label><input className="form-input" style={{fontFamily:'var(--mono)',fontSize:12}} placeholder="07AABCS1429B1Z5" value={form.gstin} onChange={e=>setForm(f=>({...f,gstin:e.target.value}))}/></div>
+          </div>
+          <div className="form-group"><label className="form-label">Correspondence Ref. No. (Email / Letter)</label><input className="form-input" style={{fontFamily:'var(--mono)',fontSize:12}} placeholder="RO/XXX/2026/000" value={form.requestRef} onChange={e=>setForm(f=>({...f,requestRef:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Notes / Reason for Request</label><textarea className="form-textarea" placeholder="State the reason for sealing or unsealing event…" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}/></div>
+        </div>
+        <div>
+          <div className="card" style={{marginBottom:12}}>
+            <div className="card-title">GST Jurisdiction</div>
+            {[{label:'GST Zone',key:'zone',opts:GST_HIERARCHY.zones},{label:'Commissionerate',key:'commissionerate',opts:comms},{label:'Division',key:'division',opts:GST_HIERARCHY.divisions},{label:'Range',key:'range',opts:GST_HIERARCHY.ranges}].map(({label,key,opts})=>(
+              <div className="form-group" key={key}>
+                <label className="form-label">{label} *</label>
+                <select className="form-select" value={form[key]} onChange={e=>{const upd={[key]:e.target.value};if(key==='zone')upd.commissionerate=(GST_HIERARCHY.commissionerates[e.target.value]||[])[0]||'';setForm(f=>({...f,...upd}));}}>
+                  {opts.map(o=><option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
+            ))}
+            <div className="form-group"><label className="form-label">Range Officer Name *</label><input className="form-input" placeholder="Full name of Range Officer" value={form.rangeOfficer} onChange={e=>setForm(f=>({...f,rangeOfficer:e.target.value}))}/></div>
+          </div>
+          <div className="warning-box" style={{marginBottom:12}}>
+            <strong>⚠ SLA Obligation:</strong> Sealing/Unsealing must be completed within <strong>3 working days</strong> from the date of ticket creation. Penalty of 10%/day applies after Day 3. After 6 days, penalty escalates to 100% of monthly lock rental.
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn-outline" style={{flex:1}} onClick={()=>setView('list')}>Cancel</button>
+            <button className="btn-primary" style={{flex:2,background:(!form.firm||!form.machine||!form.rangeOfficer||!form.hsnsReg)?'var(--border)':'var(--navy)',cursor:(!form.firm||!form.machine||!form.rangeOfficer||!form.hsnsReg)?'not-allowed':'pointer'}} onClick={createTicket} disabled={!form.firm||!form.machine||!form.rangeOfficer||!form.hsnsReg}>
+              Create Ticket &amp; Assign to Field Team
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if(view==='detail'&&selected) return(
+    <div>
+      <div className="page-header">
+        <div className="breadcrumb"><a href="#" onClick={()=>setView('list')}>Home</a> <span>/</span> <a href="#" onClick={()=>setView('list')}>DGGI Seal Tickets</a> <span>/</span> {selected.id}</div>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div>
+            <div className="page-title">{selected.id} — {selected.type==='ESE'?'Electronic Sealing (ESE)':'Electronic Unsealing (EUE)'}</div>
+            <div className="page-subtitle">{selected.firm} · {selected.range}, {selected.commissionerate}, {selected.zone}</div>
+          </div>
+          <span className="pill" style={{background:`${statusColor[selected.status]}18`,color:statusColor[selected.status],fontSize:12,padding:'5px 12px'}}>{selected.status}</span>
+        </div>
+      </div>
+      <div className="grid-2" style={{marginBottom:14}}>
+        <div className="card">
+          <div className="card-title">Ticket Information</div>
+          {[['Ticket ID',selected.id,'mono'],['Event Type',selected.type,''],['Priority',selected.priority,''],['Request Reference',selected.requestRef||'—','mono'],['Date of Request',selected.requestDate,'mono'],['Assigned Lock ID',selected.lockId||'Not Assigned','mono'],['City',selected.city,'']].map(([l,v,f])=>(
+            <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border)'}}>
+              <span style={{fontSize:12,color:'var(--text3)',fontWeight:600}}>{l}</span>
+              <span style={{fontSize:12,fontFamily:f?'var(--mono)':'var(--font)',color:'var(--text)',fontWeight:500}}>{v}</span>
+            </div>
+          ))}
+          {selected.notes&&<div style={{marginTop:10,padding:'10px 12px',background:'var(--navy-xlight)',borderRadius:4,fontSize:11.5,color:'var(--navy)',lineHeight:1.6,borderLeft:'3px solid var(--navy3)'}}>{selected.notes}</div>}
+        </div>
+        <div className="card">
+          <div className="card-title">HSNS / GST Jurisdiction Details</div>
+          {[['HSNS Reg. No.',selected.hsnsReg,'mono'],['Machine No.',selected.machine,'mono'],['Machine Reg. No.',selected.machineReg||'Pending','mono'],['Firm / Trade Name',selected.firm,''],['GSTIN',selected.gstin||'—','mono'],['GST Zone',selected.zone,''],['Commissionerate',selected.commissionerate,''],['Division',selected.division,''],['Range',selected.range,''],['Range Officer',selected.rangeOfficer,'']].map(([l,v,f])=>(
+            <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid var(--border)'}}>
+              <span style={{fontSize:11.5,color:'var(--text3)',fontWeight:600}}>{l}</span>
+              <span style={{fontSize:11.5,fontFamily:f?'var(--mono)':'var(--font)',color:'var(--text)',maxWidth:'55%',textAlign:'right'}}>{v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-title">Update Ticket Status</div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          {['New','Assigned','In Progress','Completed','Breach'].map(s=>(
+            <button key={s} onClick={()=>{setTickets(prev=>prev.map(t=>t.id===selected.id?{...t,status:s}:t));setSelected(prev=>({...prev,status:s}));}} style={{padding:'7px 18px',borderRadius:4,border:`2px solid ${selected.status===s?(statusColor[s]||'var(--navy)'):'var(--border)'}`,background:selected.status===s?'var(--navy-light)':'#fff',color:selected.status===s?(statusColor[s]||'var(--navy)'):'var(--text2)',cursor:'pointer',fontFamily:'var(--font)',fontSize:12,fontWeight:selected.status===s?700:500,transition:'all .12s'}}>
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  return(
+    <div>
+      <div className="page-header">
+        <div className="breadcrumb"><a href="#">Home</a> <span>/</span> DGGI Seal Tickets</div>
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
+          <div>
+            <div className="page-title">DGGI Sealing / Unsealing Ticket Register</div>
+            <div className="page-subtitle">HSNS Cess manufacturer e-lock requests · Range officer ticket management · Zone → Commissionerate → Division → Range</div>
+          </div>
+          <button className="btn-primary" onClick={()=>setView('create')}>+ New Ticket</button>
+        </div>
+      </div>
+      {showSuccess&&(
+        <div className="success-banner">
+          <span style={{fontSize:18,color:'var(--green)'}}>✓</span>
+          <div><div style={{fontWeight:700,color:'var(--green)',fontSize:13}}>Ticket created successfully</div><div style={{fontSize:11.5,color:'var(--text2)',fontFamily:'var(--mono)'}}>{showSuccess} · Assigned to BSNL field team · 3-day SLA window starts today</div></div>
+        </div>
+      )}
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(5,1fr)',marginBottom:14}}>
+        {[{l:'Total',v:tickets.length,a:'#1a237e'},{l:'New',v:tickets.filter(t=>t.status==='New').length,a:'#1565c0'},{l:'In Progress',v:tickets.filter(t=>t.status==='In Progress'||t.status==='Assigned').length,a:'#e65100'},{l:'Completed',v:tickets.filter(t=>t.status==='Completed').length,a:'#2e7d32'},{l:'SLA Breach',v:tickets.filter(t=>t.status==='Breach').length,a:'#c62828'}].map(k=>(
+          <div key={k.l} className="kpi" style={{'--kpi-accent':k.a}}><div className="kpi-label">{k.l}</div><div className="kpi-value" style={{fontSize:24}}>{k.v}</div></div>
+        ))}
+      </div>
+      <div className="card">
+        <div className="filter-bar">
+          {['all','New','Assigned','In Progress','Pending','Completed','Breach'].map(s=>(
+            <button key={s} className={`filter-btn${filterStatus===s?' active':''}`} onClick={()=>setFilterStatus(s)}>{s==='all'?'All':s}</button>
+          ))}
+          <div style={{marginLeft:'auto',display:'flex',gap:6}}>
+            <button className={`filter-btn${filterType==='ESE'?' active':''}`} onClick={()=>setFilterType(f=>f==='ESE'?'all':'ESE')}>🔒 Seal (ESE)</button>
+            <button className={`filter-btn${filterType==='EUE'?' active':''}`} onClick={()=>setFilterType(f=>f==='EUE'?'all':'EUE')}>🔓 Unseal (EUE)</button>
+          </div>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Ticket ID</th><th>Type</th><th>Firm</th><th>Machine</th><th>Jurisdiction</th><th>Range Officer</th><th>Date</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {filtered.map(t=>(
+                <tr key={t.id} style={{cursor:'pointer'}} onClick={()=>{setSelected(t);setView('detail');}}>
+                  <td><span className="chip">{t.id}</span></td>
+                  <td><span style={{fontSize:10.5,padding:'2px 7px',borderRadius:3,background:t.type==='ESE'?'var(--navy-light)':'var(--amber-light)',color:t.type==='ESE'?'var(--navy)':'var(--saffron)',fontWeight:700}}>{t.type}</span></td>
+                  <td style={{fontSize:11.5,maxWidth:150,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.firm}</td>
+                  <td style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--text3)'}}>{t.machine}</td>
+                  <td style={{fontSize:11.5,color:'var(--text2)'}}>{t.range}, {t.commissionerate}</td>
+                  <td style={{fontSize:11.5}}>{t.rangeOfficer}</td>
+                  <td style={{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--text3)'}}>{t.requestDate}</td>
+                  <td><span style={{fontSize:10.5,fontWeight:700,color:priorityColor[t.priority]}}>{t.priority}</span></td>
+                  <td><span className={`pill ${t.status==='Completed'?'online':t.status==='Breach'?'breach':t.status==='In Progress'||t.status==='Assigned'?'charging':'sealed'}`}>{t.status}</span></td>
+                  <td onClick={e=>e.stopPropagation()}><button onClick={()=>{setSelected(t);setView('detail');}} style={{padding:'4px 10px',borderRadius:3,border:'1px solid var(--border)',background:'#fff',color:'var(--navy)',cursor:'pointer',fontSize:11,fontFamily:'var(--font)',fontWeight:600}}>View</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{marginTop:10,fontSize:11,color:'var(--text3)'}}>Showing {filtered.length} of {tickets.length} tickets · Click any row to view full details</div>
+      </div>
+    </div>
+  );
 }
 
-function openApprove(id, reqNum) {
-  activeRequestId = id;
-  document.getElementById('approve-req-num').textContent = reqNum;
-  document.getElementById('approve-notes').value = '';
-  openModal('modal-approve');
+// ─── App ─────────────────────────────────────────────────────────
+function App(){
+  const [page,setPage]=useState('dashboard');
+  const [time,setTime]=useState(new Date());
+  useEffect(()=>{const t=setInterval(()=>setTime(new Date()),1000);return()=>clearInterval(t)},[]);
+  const pages={dashboard:<Dashboard/>,locks:<LockInventory/>,events:<EventsPage/>,alerts:<AlertsPage/>,map:<ZoneCoverage/>,sla:<SLAReports/>,dggi:<DGGITickets/>};
+  return(
+    <div className="app">
+      <GOIStrip/>
+      <Header time={time}/>
+      <Sidebar active={page} setActive={setPage}/>
+      <div className="main">{pages[page]||<Dashboard/>}</div>
+    </div>
+  );
 }
 
-async function submitApprove() {
-  try {
-    await api('POST', `/ese-eue/${activeRequestId}/approve`, { notes: document.getElementById('approve-notes').value || null });
-    closeModal('modal-approve');
-    showToast('Request approved', 'ok');
-    loadRequests();
-    loadDashboard();
-  } catch (e) { showToast(e.message, 'error'); }
-}
-
-function openReject(id, reqNum) {
-  activeRequestId = id;
-  document.getElementById('reject-req-num').textContent = reqNum;
-  document.getElementById('reject-reason').value = '';
-  openModal('modal-reject');
-}
-
-async function submitReject() {
-  const reason = document.getElementById('reject-reason').value.trim();
-  if (!reason) return showToast('Rejection reason is required', 'error');
-
-  try {
-    await api('POST', `/ese-eue/${activeRequestId}/reject`, { rejection_reason: reason });
-    closeModal('modal-reject');
-    showToast('Request rejected', 'warn');
-    loadRequests();
-    loadDashboard();
-  } catch (e) { showToast(e.message, 'error'); }
-}
-
-function openAssign(id, reqNum) {
-  activeRequestId = id;
-  document.getElementById('assign-req-num').textContent = reqNum;
-  document.getElementById('assign-engineer-id').value = '';
-  openModal('modal-assign');
-}
-
-async function submitAssign() {
-  const engineerId = document.getElementById('assign-engineer-id').value.trim();
-  if (!engineerId) return showToast('Engineer ID is required', 'error');
-
-  try {
-    await api('POST', `/ese-eue/${activeRequestId}/assign`, { engineer_id: engineerId });
-    closeModal('modal-assign');
-    showToast('Engineer assigned successfully', 'ok');
-    loadRequests();
-    loadDashboard();
-  } catch (e) { showToast(e.message, 'error'); }
-}
-
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// HELPERS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-function statusBadge(s) {
-  const map = {
-    pending: 'PENDING', approved: 'APPROVED', assigned: 'ASSIGNED',
-    in_progress: 'IN PROGRESS', completed: 'COMPLETED',
-    rejected: 'REJECTED', sla_breached: 'SLA BREACHED',
-  };
-  return `<span class="badge badge-${s}">${map[s] || s}</span>`;
-}
-
-function fmtDate(iso) {
-  if (!iso) return 'â€”';
-  return new Date(iso).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
-}
-
-function slaProgress(r) {
-  if (!r.sla_deadline || !r.requested_at) return 0;
-  const total = new Date(r.sla_deadline) - new Date(r.requested_at);
-  const elapsed = Date.now() - new Date(r.requested_at);
-  return Math.round((elapsed / total) * 100);
-}
-
-function showToast(msg, type = 'ok') {
-  const wrap = document.getElementById('toast-wrap');
-  const t = document.createElement('div');
-  t.className = `toast ${type === 'error' ? 'error' : type === 'warn' ? 'warn' : ''}`;
-  t.innerHTML = `<span>${type === 'error' ? 'âœ—' : type === 'warn' ? 'âš ' : 'âœ“'}</span> ${msg}`;
-  wrap.appendChild(t);
-  setTimeout(() => t.remove(), 3500);
-}
-
-// Close modals on overlay click
-document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => {
-    if (e.target === o) o.classList.remove('open');
-  });
-});
-
-// Enter key on login
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && document.getElementById('login-page').style.display !== 'none') {
-    doLogin();
-  }
-});
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
-
-
-
