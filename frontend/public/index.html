@@ -344,7 +344,145 @@ function GOIStrip(){
   );
 }
 
-function Header({time}){
+const API_BASE = 'http://localhost:8000/api/v1';
+
+const ROLE_LABELS = {
+  super_admin: 'Super Admin · NOC',
+  bsnl_admin: 'BSNL Admin · SPOC',
+  nodal_officer: 'Nodal Officer',
+  field_engineer: 'Field Engineer',
+  auditor: 'Auditor (Read-only)',
+};
+
+// ─── Login Screen ───────────────────────────────────────────────
+function LoginScreen({onLogin}){
+  const [email,setEmail]=useState('');
+  const [password,setPassword]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState('');
+  const [showPwd,setShowPwd]=useState(false);
+
+  const handleLogin=async(e)=>{
+    e.preventDefault();
+    setLoading(true);setError('');
+    try{
+      const r=await fetch(API_BASE+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+      const d=await r.json();
+      if(r.status===200){
+        const me=await fetch(API_BASE+'/users/me',{headers:{'Authorization':'Bearer '+d.access_token}});
+        const user=await me.json();
+        onLogin({token:d.access_token,refreshToken:d.refresh_token,role:d.role,name:user.name,email:user.email});
+      } else {
+        setError(d.detail||'Invalid credentials. Please try again.');
+      }
+    } catch(err){
+      setError('Cannot reach server. Ensure backend is running on localhost:8000.');
+    }
+    setLoading(false);
+  };
+
+  const DEMO_USERS=[
+    {label:'Super Admin',email:'admin@elsm.in'},
+    {label:'BSNL Admin',email:'bsnl@elsm.in'},
+    {label:'Nodal Officer',email:'nodal@elsm.in'},
+    {label:'Field Engineer',email:'engineer@elsm.in'},
+    {label:'Auditor',email:'auditor@elsm.in'},
+  ];
+
+  return(
+    <div style={{minHeight:'100vh',background:'var(--navy)',display:'flex',flexDirection:'column'}}>
+      {/* GoI top bar */}
+      <div style={{background:'rgba(0,0,0,.25)',padding:'0 24px',height:36,display:'flex',alignItems:'center',gap:16,fontSize:11,color:'rgba(255,255,255,.85)'}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,fontWeight:600}}>
+          <div style={{width:24,height:24,background:'#fff',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,color:'var(--navy)',fontWeight:900}}>⚜</div>
+          Government of India &nbsp;|&nbsp; Ministry of Finance &nbsp;|&nbsp; Department of Revenue
+        </div>
+        <div style={{marginLeft:'auto',opacity:.7}}>Central Board of Indirect Taxes and Customs (CBIC)</div>
+      </div>
+
+      {/* Main login area */}
+      <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
+        <div style={{width:'100%',maxWidth:440}}>
+          {/* Logo block */}
+          <div style={{textAlign:'center',marginBottom:32}}>
+            <div style={{width:72,height:72,background:'#fff',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:12,fontWeight:700,color:'var(--navy)',lineHeight:1.2,letterSpacing:.5}}>CBIC<br/>ELSM</div>
+            <div style={{color:'#fff',fontSize:22,fontWeight:700,letterSpacing:-.3,marginBottom:4}}>ELSM Portal</div>
+            <div style={{color:'rgba(255,255,255,.65)',fontSize:13}}>Electronic Lock Solution for Machines</div>
+            <div style={{color:'var(--saffron2)',fontSize:12,marginTop:4,fontWeight:600}}>HSNS CESS PORTAL · CBIC · DGGI · BSNL</div>
+          </div>
+
+          {/* Card */}
+          <div style={{background:'#fff',borderRadius:12,padding:'32px 32px 28px',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
+            <div style={{fontSize:15,fontWeight:700,color:'var(--navy)',marginBottom:4}}>Sign in to your account</div>
+            <div style={{fontSize:12,color:'var(--text3)',marginBottom:24}}>Use your CBIC ELSM portal credentials</div>
+
+            <form onSubmit={handleLogin}>
+              <div style={{marginBottom:16}}>
+                <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--navy)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:5}}>Email Address</label>
+                <input
+                  type="email" required autoFocus
+                  value={email} onChange={e=>setEmail(e.target.value)}
+                  placeholder="you@elsm.in"
+                  style={{width:'100%',padding:'10px 12px',borderRadius:'var(--r)',border:'1.5px solid var(--border)',fontSize:13,fontFamily:'var(--font)',outline:'none',transition:'border .12s'}}
+                  onFocus={e=>e.target.style.borderColor='var(--navy3)'}
+                  onBlur={e=>e.target.style.borderColor='var(--border)'}
+                />
+              </div>
+              <div style={{marginBottom:20}}>
+                <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--navy)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:5}}>Password</label>
+                <div style={{position:'relative'}}>
+                  <input
+                    type={showPwd?'text':'password'} required
+                    value={password} onChange={e=>setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    style={{width:'100%',padding:'10px 40px 10px 12px',borderRadius:'var(--r)',border:'1.5px solid var(--border)',fontSize:13,fontFamily:'var(--font)',outline:'none',transition:'border .12s'}}
+                    onFocus={e=>e.target.style.borderColor='var(--navy3)'}
+                    onBlur={e=>e.target.style.borderColor='var(--border)'}
+                  />
+                  <button type="button" onClick={()=>setShowPwd(!showPwd)} style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:12,padding:'2px 4px'}}>
+                    {showPwd?'Hide':'Show'}
+                  </button>
+                </div>
+              </div>
+
+              {error&&(
+                <div style={{background:'var(--red-light)',border:'1px solid #ef9a9a',borderRadius:'var(--r)',padding:'10px 12px',fontSize:12,color:'var(--red)',marginBottom:16,lineHeight:1.5}}>
+                  ⚠ {error}
+                </div>
+              )}
+
+              <button type="submit" disabled={loading} style={{width:'100%',padding:'11px',borderRadius:'var(--r)',border:'none',background:loading?'var(--border)':'var(--navy)',color:'#fff',fontSize:13.5,fontWeight:700,cursor:loading?'not-allowed':'pointer',fontFamily:'var(--font)',transition:'background .12s',letterSpacing:'.02em'}}>
+                {loading?'Signing in…':'Sign In →'}
+              </button>
+            </form>
+
+            {/* Quick login */}
+            <div style={{marginTop:20,paddingTop:16,borderTop:'1px solid var(--border)'}}>
+              <div style={{fontSize:10.5,color:'var(--text3)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>Quick Login (Demo)</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                {DEMO_USERS.map(u=>(
+                  <button key={u.email} onClick={()=>{setEmail(u.email);setPassword('Admin@1234');}} style={{padding:'4px 10px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text2)',fontSize:11,cursor:'pointer',fontFamily:'var(--font)',transition:'all .12s'}}
+                    onMouseEnter={e=>{e.target.style.borderColor='var(--navy)';e.target.style.color='var(--navy)';}}
+                    onMouseLeave={e=>{e.target.style.borderColor='var(--border)';e.target.style.color='var(--text2)';}}>
+                    {u.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{fontSize:10.5,color:'var(--text-light)',marginTop:6}}>All demo accounts use password: <span style={{fontFamily:'var(--mono)',color:'var(--text3)'}}>Admin@1234</span></div>
+            </div>
+          </div>
+
+          <div style={{textAlign:'center',marginTop:16,fontSize:11,color:'rgba(255,255,255,.4)'}}>
+            © 2026 CBIC, Govt. of India · ELSM Portal v2.4.1 · Advisory No. 04/2026
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Header({time,user,onLogout}){
+  const initials=(user?.name||'AN').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   return(
     <div className="header">
       <div className="header-brand">
@@ -362,12 +500,13 @@ function Header({time}){
       <div className="header-right">
         <div className="badge-live"><div className="dot-live"/>Live</div>
         <div className="time-chip">{time.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})}</div>
-        <div className="user-pill">
-          <div className="avatar">AN</div>
+        <div className="user-pill" onClick={onLogout} title="Click to logout" style={{cursor:'pointer'}}>
+          <div className="avatar">{initials}</div>
           <div style={{lineHeight:1.3}}>
-            <div style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>Anuruddha Kumar</div>
-            <div style={{fontSize:10,color:'var(--text3)'}}>AGM (EB-Platinum) · Gurugram</div>
+            <div style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>{user?.name||'User'}</div>
+            <div style={{fontSize:10,color:'var(--text3)'}}>{ROLE_LABELS[user?.role]||user?.role}</div>
           </div>
+          <div style={{fontSize:10,color:'var(--red)',fontWeight:600,marginLeft:4}}>↩</div>
         </div>
       </div>
     </div>
@@ -985,12 +1124,24 @@ function DGGITickets(){
 function App(){
   const [page,setPage]=useState('dashboard');
   const [time,setTime]=useState(new Date());
-  useEffect(()=>{const t=setInterval(()=>setTime(new Date()),1000);return()=>clearInterval(t)},[]);
+  const [user,setUser]=useState(null);
+
+  useEffect(()=>{
+    const t=setInterval(()=>setTime(new Date()),1000);
+    try{const s=localStorage.getItem('elsm_user');if(s)setUser(JSON.parse(s));}catch(e){}
+    return()=>clearInterval(t);
+  },[]);
+
+  const handleLogin=(u)=>{setUser(u);try{localStorage.setItem('elsm_user',JSON.stringify(u));}catch(e){}};
+  const handleLogout=()=>{if(!confirm('Sign out of ELSM Portal?'))return;setUser(null);try{localStorage.removeItem('elsm_user');}catch(e){}};
+
+  if(!user) return <LoginScreen onLogin={handleLogin}/>;
+
   const pages={dashboard:<Dashboard/>,locks:<LockInventory/>,events:<EventsPage/>,alerts:<AlertsPage/>,map:<ZoneCoverage/>,sla:<SLAReports/>,dggi:<DGGITickets/>};
   return(
     <div className="app">
       <GOIStrip/>
-      <Header time={time}/>
+      <Header time={time} user={user} onLogout={handleLogout}/>
       <Sidebar active={page} setActive={setPage}/>
       <div className="main">{pages[page]||<Dashboard/>}</div>
     </div>
