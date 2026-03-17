@@ -1,0 +1,1505 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ELSM Portal â€” CBIC Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0e1a;
+      --bg2: #0f1524;
+      --bg3: #151c2e;
+      --border: #1e2a42;
+      --accent: #00d4ff;
+      --accent2: #0099bb;
+      --green: #00e5a0;
+      --amber: #ffb830;
+      --red: #ff4d6d;
+      --purple: #b47cff;
+      --text: #e2e8f4;
+      --muted: #6b7a9a;
+      --card: #111827;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --font-sans: 'IBM Plex Sans', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* â”€â”€ GRID NOISE BACKGROUND â”€â”€ */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.25;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* â”€â”€ SIDEBAR â”€â”€ */
+    .sidebar {
+      position: fixed;
+      left: 0; top: 0; bottom: 0;
+      width: 220px;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+      padding: 0;
+    }
+
+    .sidebar-logo {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-logo .brand {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 2px;
+    }
+
+    .sidebar-logo .sub {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .nav-section {
+      padding: 12px 0;
+      flex: 1;
+    }
+
+    .nav-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      padding: 6px 20px;
+      text-transform: uppercase;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s;
+      border-left: 3px solid transparent;
+    }
+
+    .nav-item:hover { color: var(--text); background: rgba(0,212,255,0.04); }
+    .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(0,212,255,0.07); }
+
+    .nav-item .icon { font-size: 16px; width: 18px; text-align: center; }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: var(--bg);
+    }
+
+    /* â”€â”€ MAIN LAYOUT â”€â”€ */
+    .main {
+      margin-left: 220px;
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+    }
+
+    /* â”€â”€ TOPBAR â”€â”€ */
+    .topbar {
+      height: 56px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10,14,26,0.8);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 9;
+    }
+
+    .topbar-left {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    .topbar-left span { color: var(--accent); }
+
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,229,160,0.4); }
+      50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(0,229,160,0); }
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      font-family: var(--font-sans);
+      letter-spacing: 0.3px;
+    }
+
+    .btn-primary { background: var(--accent); color: var(--bg); }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm { padding: 5px 10px; font-size: 11px; }
+    .btn-green { background: var(--green); color: var(--bg); }
+    .btn-red { background: var(--red); color: #fff; }
+    .btn-amber { background: var(--amber); color: var(--bg); }
+
+    /* â”€â”€ PAGE CONTENT â”€â”€ */
+    .page { display: none; padding: 28px; animation: fadeIn 0.2s ease; }
+    .page.active { display: block; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .page-subtitle {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    /* â”€â”€ KPI CARDS â”€â”€ */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .kpi-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .kpi-card:hover { border-color: var(--accent2); }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+
+    .kpi-card.blue::before { background: var(--accent); }
+    .kpi-card.green::before { background: var(--green); }
+    .kpi-card.amber::before { background: var(--amber); }
+    .kpi-card.red::before { background: var(--red); }
+    .kpi-card.purple::before { background: var(--purple); }
+    .kpi-card.muted::before { background: var(--muted); }
+
+    .kpi-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .kpi-value {
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    .kpi-card.blue .kpi-value { color: var(--accent); }
+    .kpi-card.green .kpi-value { color: var(--green); }
+    .kpi-card.amber .kpi-value { color: var(--amber); }
+    .kpi-card.red .kpi-value { color: var(--red); }
+    .kpi-card.purple .kpi-value { color: var(--purple); }
+    .kpi-card.muted .kpi-value { color: var(--muted); }
+
+    /* â”€â”€ TABLE â”€â”€ */
+    .table-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .table-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .table-title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 1px;
+      color: var(--text);
+    }
+
+    .table-filters {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    select, input[type="text"] {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: var(--font-sans);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    select:focus, input[type="text"]:focus { border-color: var(--accent); }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    thead tr { background: var(--bg3); }
+
+    th {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: var(--muted);
+      text-align: left;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+    }
+
+    td {
+      padding: 12px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(30,42,66,0.6);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(0,212,255,0.03); }
+
+    .mono { font-family: var(--font-mono); font-size: 12px; }
+
+    /* â”€â”€ BADGES â”€â”€ */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-pending { background: rgba(255,184,48,0.12); color: var(--amber); border: 1px solid rgba(255,184,48,0.2); }
+    .badge-approved { background: rgba(0,212,255,0.10); color: var(--accent); border: 1px solid rgba(0,212,255,0.2); }
+    .badge-assigned { background: rgba(180,124,255,0.10); color: var(--purple); border: 1px solid rgba(180,124,255,0.2); }
+    .badge-in_progress { background: rgba(0,212,255,0.06); color: #7dd3fc; border: 1px solid rgba(125,211,252,0.2); }
+    .badge-completed { background: rgba(0,229,160,0.10); color: var(--green); border: 1px solid rgba(0,229,160,0.2); }
+    .badge-rejected { background: rgba(255,77,109,0.10); color: var(--red); border: 1px solid rgba(255,77,109,0.2); }
+    .badge-sla_breached { background: rgba(255,77,109,0.18); color: var(--red); border: 1px solid rgba(255,77,109,0.4); animation: blink 1.5s infinite; }
+    .badge-ese { background: rgba(0,212,255,0.08); color: var(--accent); border: 1px solid rgba(0,212,255,0.15); }
+    .badge-eue { background: rgba(180,124,255,0.08); color: var(--purple); border: 1px solid rgba(180,124,255,0.15); }
+
+    @keyframes blink { 50% { opacity: 0.6; } }
+
+    /* â”€â”€ MODAL â”€â”€ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      display: none;
+    }
+
+    .modal-overlay.open { display: flex; animation: fadeIn 0.15s ease; }
+
+    .modal {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .modal-close:hover { color: var(--text); }
+
+    .modal-body { padding: 24px; }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: var(--font-sans);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .form-control:focus { border-color: var(--accent); }
+
+    textarea.form-control { resize: vertical; min-height: 80px; }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* â”€â”€ DETAIL PANEL â”€â”€ */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .detail-item { }
+
+    .detail-key {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .detail-val {
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    /* â”€â”€ TIMELINE â”€â”€ */
+    .timeline {
+      position: relative;
+      padding-left: 24px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px; top: 0; bottom: 0;
+      width: 1px;
+      background: var(--border);
+    }
+
+    .tl-step {
+      position: relative;
+      padding-bottom: 20px;
+    }
+
+    .tl-step::before {
+      content: '';
+      position: absolute;
+      left: -20px;
+      top: 4px;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+      border: 2px solid var(--bg2);
+    }
+
+    .tl-step.done::before { background: var(--green); }
+    .tl-step.active::before { background: var(--accent); animation: pulse 1.5s infinite; }
+
+    .tl-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .tl-time {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* â”€â”€ SLA BAR â”€â”€ */
+    .sla-bar-wrap {
+      background: var(--bg3);
+      border-radius: 4px;
+      height: 6px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .sla-bar { height: 100%; border-radius: 4px; transition: width 0.5s; }
+    .sla-bar.ok { background: var(--green); }
+    .sla-bar.warn { background: var(--amber); }
+    .sla-bar.breached { background: var(--red); }
+
+    /* â”€â”€ EMPTY STATE â”€â”€ */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+
+    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state .msg { font-size: 14px; margin-bottom: 4px; color: var(--text); }
+    .empty-state .sub { font-size: 12px; }
+
+    /* â”€â”€ LOGIN â”€â”€ */
+    #login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 380px;
+      padding: 40px 36px;
+    }
+
+    .login-logo {
+      font-family: var(--font-mono);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 4px;
+      margin-bottom: 4px;
+    }
+
+    .login-tagline {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 32px;
+      letter-spacing: 0.5px;
+    }
+
+    .login-error {
+      background: rgba(255,77,109,0.1);
+      border: 1px solid rgba(255,77,109,0.3);
+      color: var(--red);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      margin-bottom: 14px;
+      display: none;
+    }
+
+    /* â”€â”€ TOAST â”€â”€ */
+    .toast-wrap {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      min-width: 260px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideUp 0.2s ease;
+      border-left: 3px solid var(--green);
+    }
+
+    .toast.error { border-left-color: var(--red); }
+    .toast.warn { border-left-color: var(--amber); }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* â”€â”€ LOADING â”€â”€ */
+    .loading {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .spinner-center {
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    /* â”€â”€ ACTION ROW â”€â”€ */
+    .action-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+  </style>
+</head>
+<body>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     LOGIN PAGE
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-logo">ELSM</div>
+    <div class="login-tagline">Electronic Lock Solution Management - CBIC Portal</div>
+    <div class="login-error" id="login-error"></div>
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input type="text" class="form-control" id="login-email" placeholder="admin@elsm.in" value="admin@elsm.in" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input type="password" class="form-control" id="login-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value="Admin@1234" />
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;" onclick="doLogin()" id="login-btn">
+      Sign In
+    </button>
+    <div style="margin-top:16px;font-size:11px;color:var(--muted);text-align:center;">
+      BSNL CBIC - Electronic Lock Solution - v1.0
+    </div>
+  </div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     MAIN APP (hidden until login)
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="app" style="display:none;">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="brand">ELSM</div>
+      <div class="sub">CBIC DASHBOARD</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <span class="icon">&#11041;</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('requests')">
+        <span class="icon">â‡„</span> ESE/EUE Requests
+      </div>
+      <div class="nav-label" style="margin-top:8px;">Management</div>
+      <div class="nav-item" onclick="showPage('devices')">
+        <span class="icon">â—ˆ</span> E-Lock Devices
+      </div>
+      <div class="nav-item" onclick="showPage('alerts')">
+        <span class="icon">â—¬</span> Alerts
+      </div>
+      <div class="nav-item" onclick="showPage('audit')">
+        <span class="icon">â‰¡</span> Audit Log
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="avatar" id="user-avatar">SA</div>
+        <div>
+          <div style="font-size:12px;color:var(--text);font-weight:500;" id="user-name">Admin</div>
+          <div style="font-size:10px;color:var(--muted);" id="user-role">super_admin</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <button class="btn btn-outline btn-sm" onclick="doLogout()" style="width:100%;justify-content:center;">Sign Out</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        ELSM PORTAL - <span id="topbar-page">DASHBOARD</span>
+      </div>
+      <div class="topbar-right">
+        <div class="status-dot"></div>
+        <span style="font-size:11px;color:var(--muted);">SYSTEM ONLINE</span>
+        <span style="font-size:11px;color:var(--muted);font-family:var(--font-mono);" id="clock"></span>
+      </div>
+    </div>
+
+    <!-- â”€â”€ DASHBOARD PAGE â”€â”€ -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-subtitle">ESE / EUE WORKFLOW OVERVIEW - REAL-TIME</div>
+        </div>
+        <button class="btn btn-primary" onclick="showPage('requests'); openCreateModal()">
+          + New Request
+        </button>
+      </div>
+
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-card blue"><div class="kpi-label">Total</div><div class="kpi-value" id="kpi-total">â€”</div></div>
+        <div class="kpi-card amber"><div class="kpi-label">Pending</div><div class="kpi-value" id="kpi-pending">â€”</div></div>
+        <div class="kpi-card blue"><div class="kpi-label">Approved</div><div class="kpi-value" id="kpi-approved">â€”</div></div>
+        <div class="kpi-card purple"><div class="kpi-label">In Progress</div><div class="kpi-value" id="kpi-inprogress">â€”</div></div>
+        <div class="kpi-card green"><div class="kpi-label">Completed</div><div class="kpi-value" id="kpi-completed">â€”</div></div>
+        <div class="kpi-card red"><div class="kpi-label">SLA Breached</div><div class="kpi-value" id="kpi-breached">â€”</div></div>
+      </div>
+
+      <!-- Recent requests preview -->
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">RECENT REQUESTS</div>
+          <button class="btn btn-outline btn-sm" onclick="showPage('requests')">View All â†’</button>
+        </div>
+        <div id="recent-table-body">
+          <div class="spinner-center"><div class="loading"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- â”€â”€ REQUESTS PAGE â”€â”€ -->
+    <div class="page" id="page-requests">
+      <div class="page-header">
+        <div>
+          <div class="page-title">ESE / EUE Requests</div>
+          <div class="page-subtitle">ELECTRONIC SEALING & UNSEALING WORKFLOW - CLAUSE 10.5</div>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()">+ New Request</button>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">ALL REQUESTS</div>
+          <div class="table-filters">
+            <select id="filter-status" onchange="loadRequests()">
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="assigned">Assigned</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="rejected">Rejected</option>
+              <option value="sla_breached">SLA Breached</option>
+            </select>
+            <select id="filter-type" onchange="loadRequests()">
+              <option value="">All Types</option>
+              <option value="ese">ESE</option>
+              <option value="eue">EUE</option>
+            </select>
+          </div>
+        </div>
+        <div id="requests-table-wrap">
+          <div class="spinner-center"><div class="loading"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- â”€â”€ DEVICES PAGE (placeholder) â”€â”€ -->
+    <div class="page" id="page-devices">
+      <div class="page-header">
+        <div>
+          <div class="page-title">E-Lock Devices</div>
+          <div class="page-subtitle">DEVICE REGISTRY - COMING SOON</div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="empty-state">
+          <div class="icon">â—ˆ</div>
+          <div class="msg">Device Management â€” Phase 3</div>
+          <div class="sub">E-Lock registry, health monitoring and battery tracking will appear here.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- â”€â”€ ALERTS PAGE (placeholder) â”€â”€ -->
+    <div class="page" id="page-alerts">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Alerts</div>
+          <div class="page-subtitle">TAMPER / BATTERY / GEO-FENCE - COMING SOON</div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="empty-state">
+          <div class="icon">â—¬</div>
+          <div class="msg">Alert Management â€” Phase 3</div>
+          <div class="sub">Low battery, tamper, and geo-fence alerts will appear here.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- â”€â”€ AUDIT PAGE (placeholder) â”€â”€ -->
+    <div class="page" id="page-audit">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Audit Log</div>
+          <div class="page-subtitle">IMMUTABLE TRAIL - CLAUSE 2.9</div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="empty-state">
+          <div class="icon">â‰¡</div>
+          <div class="msg">Audit Trail â€” Phase 4</div>
+          <div class="sub">Full immutable audit trail with role, timestamp, and geo-tag will appear here.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     MODALS
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+
+<!-- Create Request Modal -->
+<div class="modal-overlay" id="modal-create">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New ESE / EUE Request</div>
+      <button class="modal-close" onclick="closeModal('modal-create')">Ã—</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Event Type</label>
+        <select class="form-control" id="new-event-type">
+          <option value="ese">ESE â€” Electronic Sealing Event</option>
+          <option value="eue">EUE â€” Electronic Unsealing Event</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Machine ID</label>
+        <input type="text" class="form-control" id="new-machine-id" placeholder="Enter machine UUID" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-Lock ID (optional)</label>
+        <input type="text" class="form-control" id="new-elock-id" placeholder="Enter e-lock UUID (optional)" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" id="new-notes" placeholder="Additional details..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-create')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitCreate()" id="create-btn">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- Approve Modal -->
+<div class="modal-overlay" id="modal-approve">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Approve Request</div>
+      <button class="modal-close" onclick="closeModal('modal-approve')">Ã—</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Approving request: <span id="approve-req-num" style="color:var(--accent);font-family:var(--font-mono);"></span></p>
+      <div class="form-group">
+        <label class="form-label">Approval Notes (optional)</label>
+        <textarea class="form-control" id="approve-notes" placeholder="Optional notes..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-approve')">Cancel</button>
+      <button class="btn btn-green" onclick="submitApprove()">âœ“ Approve</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal-overlay" id="modal-reject">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Reject Request</div>
+      <button class="modal-close" onclick="closeModal('modal-reject')">Ã—</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Rejecting: <span id="reject-req-num" style="color:var(--red);font-family:var(--font-mono);"></span></p>
+      <div class="form-group">
+        <label class="form-label">Rejection Reason *</label>
+        <textarea class="form-control" id="reject-reason" placeholder="State reason for rejection..." required></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-reject')">Cancel</button>
+      <button class="btn btn-red" onclick="submitReject()">âœ— Reject</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Modal -->
+<div class="modal-overlay" id="modal-assign">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Assign Field Engineer</div>
+      <button class="modal-close" onclick="closeModal('modal-assign')">Ã—</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Assigning: <span id="assign-req-num" style="color:var(--accent);font-family:var(--font-mono);"></span></p>
+      <div class="form-group">
+        <label class="form-label">Field Engineer ID</label>
+        <input type="text" class="form-control" id="assign-engineer-id" placeholder="Enter engineer UUID" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-assign')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAssign()">Assign Engineer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <div class="modal-title">Request Detail</div>
+      <button class="modal-close" onclick="closeModal('modal-detail')">Ã—</button>
+    </div>
+    <div class="modal-body" id="detail-body">
+      <div class="spinner-center"><div class="loading"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-detail')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// CONFIG
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+const API_BASE = window.location.hostname === 'localhost'
+  ? 'http://localhost:8000/api/v1'
+  : '/api/v1';  // for proxied production
+
+let authToken = localStorage.getItem('elsm_token') || '';
+let currentUser = JSON.parse(localStorage.getItem('elsm_user') || 'null');
+let activeRequestId = null;
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// CLOCK
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// AUTH
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-error');
+
+  errEl.style.display = 'none';
+  btn.innerHTML = '<span class="loading"></span> Signing in...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.detail || 'Login failed');
+    if (data.requires_2fa) throw new Error('2FA required â€” not yet supported in this UI');
+
+    authToken = data.access_token;
+    currentUser = { id: data.user_id, name: data.name, role: data.role };
+    localStorage.setItem('elsm_token', authToken);
+    localStorage.setItem('elsm_user', JSON.stringify(currentUser));
+
+    initApp();
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+    btn.innerHTML = 'Sign In';
+    btn.disabled = false;
+  }
+}
+
+function doLogout() {
+  authToken = '';
+  currentUser = null;
+  localStorage.removeItem('elsm_token');
+  localStorage.removeItem('elsm_user');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-page').style.display = 'flex';
+}
+
+function initApp() {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  // Set user info
+  document.getElementById('user-name').textContent = currentUser.name;
+  document.getElementById('user-role').textContent = currentUser.role;
+  document.getElementById('user-avatar').textContent =
+    currentUser.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+  loadDashboard();
+}
+
+// Auto-login if token exists
+if (authToken && currentUser) {
+  initApp();
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// API HELPER
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+async function api(method, path, body = null) {
+  const opts = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`,
+    },
+  };
+  if (body) opts.body = JSON.stringify(body);
+
+  const res = await fetch(`${API_BASE}${path}`, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    if (res.status === 401) doLogout();
+    throw new Error((typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// NAVIGATION
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  document.getElementById(`page-${name}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.toLowerCase().includes(name.replace('requests', 'ese'))) {
+      n.classList.add('active');
+    }
+  });
+
+  const labels = { dashboard: 'DASHBOARD', requests: 'ESE/EUE REQUESTS', devices: 'E-LOCK DEVICES', alerts: 'ALERTS', audit: 'AUDIT LOG' };
+  document.getElementById('topbar-page').textContent = labels[name] || name.toUpperCase();
+
+  if (name === 'requests') loadRequests();
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// DASHBOARD
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+async function loadDashboard() {
+  try {
+    const summary = await api('GET', '/ese-eue/summary');
+    document.getElementById('kpi-total').textContent = summary.total;
+    document.getElementById('kpi-pending').textContent = summary.pending;
+    document.getElementById('kpi-approved').textContent = summary.approved;
+    document.getElementById('kpi-inprogress').textContent = summary.in_progress;
+    document.getElementById('kpi-completed').textContent = summary.completed;
+    document.getElementById('kpi-breached').textContent = summary.sla_breached;
+  } catch (e) {
+    // Show mock data if API not connected
+    document.getElementById('kpi-total').textContent = '0';
+    document.getElementById('kpi-pending').textContent = '0';
+    document.getElementById('kpi-approved').textContent = '0';
+    document.getElementById('kpi-inprogress').textContent = '0';
+    document.getElementById('kpi-completed').textContent = '0';
+    document.getElementById('kpi-breached').textContent = '0';
+  }
+
+  try {
+    const reqs = await api('GET', '/ese-eue/?page_size=5');
+    renderRecentTable(reqs);
+  } catch (e) {
+    document.getElementById('recent-table-body').innerHTML = `<div class="empty-state"><div class="icon">â‡„</div><div class="msg">No requests yet</div><div class="sub">Create your first ESE/EUE request to get started.</div></div>`;
+  }
+}
+
+function renderRecentTable(reqs) {
+  const wrap = document.getElementById('recent-table-body');
+  if (!reqs.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">â‡„</div><div class="msg">No requests yet</div><div class="sub">Create your first ESE/EUE request.</div></div>`;
+    return;
+  }
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Ref No.</th><th>Type</th><th>Status</th><th>SLA Deadline</th><th>Requested</th>
+    </tr></thead>
+    <tbody>${reqs.map(r => `
+      <tr>
+        <td class="mono">${r.request_number}</td>
+        <td><span class="badge badge-${r.event_type}">${r.event_type.toUpperCase()}</span></td>
+        <td>${statusBadge(r.status)}</td>
+        <td class="mono" style="font-size:11px;">${r.sla_deadline ? fmtDate(r.sla_deadline) : 'â€”'}</td>
+        <td style="font-size:11px;color:var(--muted);">${fmtDate(r.requested_at)}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// REQUESTS TABLE
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+async function loadRequests() {
+  const wrap = document.getElementById('requests-table-wrap');
+  wrap.innerHTML = '<div class="spinner-center"><div class="loading"></div></div>';
+
+  const statusVal = document.getElementById('filter-status')?.value || '';
+  const typeVal = document.getElementById('filter-type')?.value || '';
+
+  let qs = '?page_size=50';
+  if (statusVal) qs += `&status=${statusVal}`;
+  if (typeVal) qs += `&event_type=${typeVal}`;
+
+  try {
+    const reqs = await api('GET', `/ese-eue/${qs}`);
+    renderRequestsTable(wrap, reqs);
+  } catch (e) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">â‡„</div><div class="msg">Failed to load</div><div class="sub">${e.message}</div></div>`;
+  }
+}
+
+function renderRequestsTable(wrap, reqs) {
+  if (!reqs.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">â‡„</div><div class="msg">No requests found</div><div class="sub">Try changing filters or create a new request.</div></div>`;
+    return;
+  }
+
+  const canApprove = ['super_admin', 'bsnl_admin'].includes(currentUser?.role);
+  const canAssign  = ['super_admin', 'bsnl_admin', 'nodal_officer'].includes(currentUser?.role);
+
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Ref No.</th><th>Type</th><th>Status</th><th>SLA</th><th>Requested</th><th>Actions</th>
+    </tr></thead>
+    <tbody>${reqs.map(r => {
+      const slaPercent = slaProgress(r);
+      const actions = buildActions(r, canApprove, canAssign);
+      return `<tr>
+        <td><span class="mono" style="cursor:pointer;color:var(--accent);" onclick='openDetail("${r.id}")'>${r.request_number}</span></td>
+        <td><span class="badge badge-${r.event_type}">${r.event_type.toUpperCase()}</span></td>
+        <td>${statusBadge(r.status)}</td>
+        <td style="min-width:120px;">
+          <div style="font-size:10px;color:var(--muted);font-family:var(--font-mono);">${r.sla_deadline ? fmtDate(r.sla_deadline) : 'â€”'}</div>
+          ${r.sla_deadline ? `<div class="sla-bar-wrap"><div class="sla-bar ${slaPercent >= 100 ? 'breached' : slaPercent >= 80 ? 'warn' : 'ok'}" style="width:${Math.min(slaPercent,100)}%"></div></div>` : ''}
+        </td>
+        <td style="font-size:11px;color:var(--muted);">${fmtDate(r.requested_at)}</td>
+        <td><div class="action-row">${actions}</div></td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>`;
+}
+
+function buildActions(r, canApprove, canAssign) {
+  const btns = [];
+  btns.push(`<button class="btn btn-outline btn-sm" onclick='openDetail("${r.id}")'>View</button>`);
+
+  if (canApprove && r.status === 'pending') {
+    btns.push(`<button class="btn btn-green btn-sm" onclick='openApprove("${r.id}", "${r.request_number}")'>âœ“</button>`);
+    btns.push(`<button class="btn btn-red btn-sm" onclick='openReject("${r.id}", "${r.request_number}")'>âœ—</button>`);
+  }
+  if (canAssign && r.status === 'approved') {
+    btns.push(`<button class="btn btn-primary btn-sm" onclick='openAssign("${r.id}", "${r.request_number}")'>Assign</button>`);
+  }
+  return btns.join('');
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// DETAIL MODAL
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+async function openDetail(id) {
+  openModal('modal-detail');
+  document.getElementById('detail-body').innerHTML = '<div class="spinner-center"><div class="loading"></div></div>';
+
+  try {
+    const r = await api('GET', `/ese-eue/${id}`);
+    renderDetail(r);
+  } catch (e) {
+    document.getElementById('detail-body').innerHTML = `<p style="color:var(--red)">${e.message}</p>`;
+  }
+}
+
+function renderDetail(r) {
+  const sla = r.sla_record;
+  const le  = r.lock_event;
+
+  const steps = [
+    { label: 'Request Created', time: r.requested_at, done: true },
+    { label: 'Approved', time: r.approved_at, done: !!r.approved_at },
+    { label: 'Engineer Assigned', time: r.assigned_at, done: !!r.assigned_at },
+    { label: 'In Progress', time: null, done: ['in_progress','completed','sla_breached'].includes(r.status) },
+    { label: 'Completed', time: r.completed_at, done: !!r.completed_at },
+  ];
+
+  const isActive = (i) => !steps[i].done && steps[i-1]?.done;
+
+  document.getElementById('detail-body').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-item">
+        <div class="detail-key">Ref No.</div>
+        <div class="detail-val mono">${r.request_number}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-key">Status</div>
+        <div class="detail-val">${statusBadge(r.status)}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-key">Event Type</div>
+        <div class="detail-val"><span class="badge badge-${r.event_type}">${r.event_type.toUpperCase()}</span></div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-key">SLA Deadline</div>
+        <div class="detail-val mono" style="font-size:12px;">${r.sla_deadline ? fmtDate(r.sla_deadline) : 'â€”'}</div>
+      </div>
+      ${r.notes ? `<div class="detail-item" style="grid-column:1/-1">
+        <div class="detail-key">Notes</div>
+        <div class="detail-val" style="color:var(--muted);font-size:12px;">${r.notes}</div>
+      </div>` : ''}
+      ${r.rejection_reason ? `<div class="detail-item" style="grid-column:1/-1">
+        <div class="detail-key">Rejection Reason</div>
+        <div class="detail-val" style="color:var(--red);font-size:12px;">${r.rejection_reason}</div>
+      </div>` : ''}
+    </div>
+
+    ${sla ? `<div style="margin-bottom:20px;">
+      <div class="detail-key" style="margin-bottom:8px;">SLA STATUS</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:12px;color:${sla.is_breached?'var(--red)':'var(--green)'};">
+          ${sla.is_breached ? `âš  BREACHED by ${sla.breach_duration_hours?.toFixed(1)}h` : 'âœ“ On Track'}
+        </span>
+        <span class="mono" style="font-size:10px;color:var(--muted);">Deadline: ${fmtDate(sla.sla_deadline)}</span>
+      </div>
+      <div class="sla-bar-wrap" style="height:8px;">
+        <div class="sla-bar ${sla.is_breached ? 'breached' : 'ok'}" style="width:${sla.is_breached?100:slaProgress(r)}%"></div>
+      </div>
+    </div>` : ''}
+
+    <div>
+      <div class="detail-key" style="margin-bottom:12px;">WORKFLOW TIMELINE</div>
+      <div class="timeline">
+        ${steps.map((s, i) => `
+          <div class="tl-step ${s.done ? 'done' : isActive(i) ? 'active' : ''}">
+            <div class="tl-label" style="color:${s.done?'var(--text)':'var(--muted)'}">${s.label}</div>
+            <div class="tl-time">${s.time ? fmtDate(s.time) : s.done ? 'Completed' : 'Pending'}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    ${le ? `<div style="margin-top:20px;">
+      <div class="detail-key" style="margin-bottom:8px;">LOCK EVENT RECORD</div>
+      <div style="background:var(--bg3);border-radius:8px;padding:12px;font-size:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div><span style="color:var(--muted);">Method: </span><span class="mono">${le.unlock_method || 'â€”'}</span></div>
+          <div><span style="color:var(--muted);">OTP Used: </span><span>${le.otp_used ? 'âœ“ Yes' : 'âœ— No'}</span></div>
+          <div><span style="color:var(--muted);">GPS: </span><span class="mono">${le.gps_lat ? `${le.gps_lat.toFixed(4)}, ${le.gps_lng.toFixed(4)}` : 'Not recorded'}</span></div>
+          <div><span style="color:var(--muted);">Timestamp: </span><span class="mono" style="font-size:11px;">${fmtDate(le.event_timestamp)}</span></div>
+        </div>
+      </div>
+    </div>` : ''}
+  `;
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// MODALS â€” CREATE / APPROVE / REJECT / ASSIGN
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+function openCreateModal() {
+  openModal('modal-create');
+}
+
+async function submitCreate() {
+  const btn = document.getElementById('create-btn');
+  const eventType = document.getElementById('new-event-type').value;
+  const machineId = document.getElementById('new-machine-id').value.trim();
+  const elockId   = document.getElementById('new-elock-id').value.trim();
+  const notes     = document.getElementById('new-notes').value.trim();
+
+  if (!machineId) return showToast('Machine ID is required', 'error');
+
+  btn.innerHTML = '<span class="loading"></span> Submitting...';
+  btn.disabled = true;
+
+  try {
+    const body = { event_type: eventType, machine_id: machineId, notes: notes || null };
+    if (elockId) body.e_lock_id = elockId;
+
+    await api('POST', '/ese-eue/', body);
+    closeModal('modal-create');
+    showToast('Request created successfully', 'ok');
+    loadDashboard();
+    if (document.getElementById('page-requests').classList.contains('active')) loadRequests();
+  } catch (e) {
+    showToast(e.message, 'error');
+  } finally {
+    btn.innerHTML = 'Submit Request';
+    btn.disabled = false;
+  }
+}
+
+function openApprove(id, reqNum) {
+  activeRequestId = id;
+  document.getElementById('approve-req-num').textContent = reqNum;
+  document.getElementById('approve-notes').value = '';
+  openModal('modal-approve');
+}
+
+async function submitApprove() {
+  try {
+    await api('POST', `/ese-eue/${activeRequestId}/approve`, { notes: document.getElementById('approve-notes').value || null });
+    closeModal('modal-approve');
+    showToast('Request approved', 'ok');
+    loadRequests();
+    loadDashboard();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+function openReject(id, reqNum) {
+  activeRequestId = id;
+  document.getElementById('reject-req-num').textContent = reqNum;
+  document.getElementById('reject-reason').value = '';
+  openModal('modal-reject');
+}
+
+async function submitReject() {
+  const reason = document.getElementById('reject-reason').value.trim();
+  if (!reason) return showToast('Rejection reason is required', 'error');
+
+  try {
+    await api('POST', `/ese-eue/${activeRequestId}/reject`, { rejection_reason: reason });
+    closeModal('modal-reject');
+    showToast('Request rejected', 'warn');
+    loadRequests();
+    loadDashboard();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+function openAssign(id, reqNum) {
+  activeRequestId = id;
+  document.getElementById('assign-req-num').textContent = reqNum;
+  document.getElementById('assign-engineer-id').value = '';
+  openModal('modal-assign');
+}
+
+async function submitAssign() {
+  const engineerId = document.getElementById('assign-engineer-id').value.trim();
+  if (!engineerId) return showToast('Engineer ID is required', 'error');
+
+  try {
+    await api('POST', `/ese-eue/${activeRequestId}/assign`, { engineer_id: engineerId });
+    closeModal('modal-assign');
+    showToast('Engineer assigned successfully', 'ok');
+    loadRequests();
+    loadDashboard();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// HELPERS
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function statusBadge(s) {
+  const map = {
+    pending: 'PENDING', approved: 'APPROVED', assigned: 'ASSIGNED',
+    in_progress: 'IN PROGRESS', completed: 'COMPLETED',
+    rejected: 'REJECTED', sla_breached: 'SLA BREACHED',
+  };
+  return `<span class="badge badge-${s}">${map[s] || s}</span>`;
+}
+
+function fmtDate(iso) {
+  if (!iso) return 'â€”';
+  return new Date(iso).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+}
+
+function slaProgress(r) {
+  if (!r.sla_deadline || !r.requested_at) return 0;
+  const total = new Date(r.sla_deadline) - new Date(r.requested_at);
+  const elapsed = Date.now() - new Date(r.requested_at);
+  return Math.round((elapsed / total) * 100);
+}
+
+function showToast(msg, type = 'ok') {
+  const wrap = document.getElementById('toast-wrap');
+  const t = document.createElement('div');
+  t.className = `toast ${type === 'error' ? 'error' : type === 'warn' ? 'warn' : ''}`;
+  t.innerHTML = `<span>${type === 'error' ? 'âœ—' : type === 'warn' ? 'âš ' : 'âœ“'}</span> ${msg}`;
+  wrap.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => {
+    if (e.target === o) o.classList.remove('open');
+  });
+});
+
+// Enter key on login
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-page').style.display !== 'none') {
+    doLogin();
+  }
+});
+</script>
+</body>
+</html>
+
+
+
