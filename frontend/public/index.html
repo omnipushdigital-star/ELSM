@@ -344,139 +344,138 @@ function GOIStrip(){
   );
 }
 
+
 const API_BASE = 'http://localhost:8000/api/v1';
+const ROLE_LABELS = {super_admin:'Super Admin · NOC',cbic_admin:'CBIC Admin · Zone Head',bsnl_admin:'BSNL Admin · SPOC',bsnl_supervisor:'BSNL Supervisor',nodal_officer:'Range Officer · CBIC',field_engineer:'Field Technician · BSNL',auditor:'PMO / Auditor'};
 
-const ROLE_LABELS = {
-  super_admin: 'Super Admin · NOC',
-  bsnl_admin: 'BSNL Admin · SPOC',
-  nodal_officer: 'Nodal Officer',
-  field_engineer: 'Field Engineer',
-  auditor: 'Auditor (Read-only)',
-};
-
-// ─── Login Screen ───────────────────────────────────────────────
 function LoginScreen({onLogin}){
-  const [email,setEmail]=useState('');
-  const [password,setPassword]=useState('');
+  const [email,setEmail]=useState('admin@elsm.in');
+  const [password,setPassword]=useState('Admin@1234');
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState('');
   const [showPwd,setShowPwd]=useState(false);
+  const [activeGroup,setActiveGroup]=useState('cbic');
 
-  const handleLogin=async(e)=>{
-    e.preventDefault();
-    setLoading(true);setError('');
-    try{
-      const r=await fetch(API_BASE+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
-      const d=await r.json();
-      if(r.status===200){
-        const me=await fetch(API_BASE+'/users/me',{headers:{'Authorization':'Bearer '+d.access_token}});
-        const user=await me.json();
-        onLogin({token:d.access_token,refreshToken:d.refresh_token,role:d.role,name:user.name,email:user.email});
-      } else {
-        setError(d.detail||'Invalid credentials. Please try again.');
-      }
-    } catch(err){
-      setError('Cannot reach server. Ensure backend is running on localhost:8000.');
+  // GST Hierarchy-linked users
+  const CBIC_USERS=[
+    {email:'admin@elsm.in',role:'super_admin',label:'Super Admin',sublabel:'NOC · Full Access · All Zones',name:'Arvind Kumar Singh',zone:'All Zones',color:'#1a237e',bg:'#e8eaf6'},
+    {email:'cbic.admin@gstin.gov.in',role:'cbic_admin',label:'CBIC Admin',sublabel:'Delhi Zone · Commissionerate Head',name:'Deepak Mehrotra',zone:'Delhi Zone',comm:'Delhi East',color:'#283593',bg:'#e8eaf6'},
+    {email:'raj.kumar@gstin.gov.in',role:'nodal_officer',label:'Range Officer',sublabel:'Delhi Zone · Delhi East · Range I',name:'Rajesh Kumar Sharma',zone:'Delhi Zone',comm:'Delhi East',range:'Range I',officerCode:'OFC1002',color:'#e65100',bg:'#fff3e0'},
+    {email:'priya.sharma@gstin.gov.in',role:'nodal_officer',label:'Range Officer',sublabel:'Mumbai Zone · Mumbai West · Range IV',name:'Priya Sharma',zone:'Mumbai Zone',comm:'Mumbai West',range:'Range IV',officerCode:'OFC1003',color:'#e65100',bg:'#fff3e0'},
+    {email:'kavitha.reddy@gstin.gov.in',role:'nodal_officer',label:'Range Officer',sublabel:'Hyderabad Zone · Hyderabad I · Range V',name:'Kavitha Reddy',zone:'Hyderabad Zone',comm:'Hyderabad I',range:'Range V',officerCode:'OFC-003',color:'#e65100',bg:'#fff3e0'},
+    {email:'auditor@cbic.gov.in',role:'auditor',label:'PMO / Auditor',sublabel:'Read-only · Reports & Compliance',name:'Sunita Verma',zone:'All Zones',color:'#4e342e',bg:'#efebe9'},
+  ];
+
+  const BSNL_USERS=[
+    {email:'bsnl.admin@bsnl.co.in',role:'bsnl_admin',label:'BSNL Admin',sublabel:'SPOC · Central Operations',name:'Ankit Sharma',zone:'All Zones',color:'#1565c0',bg:'#e3f2fd'},
+    {email:'supervisor@bsnl.co.in',role:'bsnl_supervisor',label:'BSNL Supervisor',sublabel:'Zone Supervisor · Delhi Circle',name:'Ramesh Chandra Gupta',zone:'Delhi Zone',color:'#0277bd',bg:'#e1f5fe'},
+    {email:'engineer@bsnl.co.in',role:'field_engineer',label:'Field Technician',sublabel:'BSNL Technician · Delhi Zone',name:'Rajendra Prasad',zone:'Delhi Zone',color:'#00695c',bg:'#e0f2f1'},
+  ];
+
+  const ALL_USERS=[...CBIC_USERS,...BSNL_USERS];
+
+  const doLogin=async(e)=>{
+    e.preventDefault();setLoading(true);setError('');
+    await new Promise(res=>setTimeout(res,500));
+    const found=ALL_USERS.find(u=>u.email===email);
+    if(found&&password==='Admin@1234'){
+      onLogin({email:found.email,role:found.role,name:found.name,zone:found.zone,comm:found.comm||null,range:found.range||null,officerCode:found.officerCode||null,token:'demo-'+Date.now()});
+    } else {
+      try{
+        const resp=await fetch('http://localhost:8000/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+        if(resp.ok){const d=await resp.json();const me=await fetch('http://localhost:8000/api/v1/users/me',{headers:{Authorization:'Bearer '+d.access_token}});const u=await me.json();onLogin({email,role:d.role,name:u.name,token:d.access_token});}
+        else setError('Invalid credentials');
+      }catch{setError('Backend offline — use the role buttons to quick-login');}
     }
     setLoading(false);
   };
 
-  const DEMO_USERS=[
-    {label:'Super Admin',email:'admin@elsm.in'},
-    {label:'BSNL Admin',email:'bsnl@elsm.in'},
-    {label:'Nodal Officer',email:'nodal@elsm.in'},
-    {label:'Field Engineer',email:'engineer@elsm.in'},
-    {label:'Auditor',email:'auditor@elsm.in'},
-  ];
+  const quickLogin=(u)=>{setEmail(u.email);setPassword('Admin@1234');};
 
   return(
     <div style={{minHeight:'100vh',background:'var(--navy)',display:'flex',flexDirection:'column'}}>
-      {/* GoI top bar */}
-      <div style={{background:'rgba(0,0,0,.25)',padding:'0 24px',height:36,display:'flex',alignItems:'center',gap:16,fontSize:11,color:'rgba(255,255,255,.85)'}}>
+      <div style={{background:'rgba(0,0,0,.22)',height:34,display:'flex',alignItems:'center',padding:'0 24px',gap:12,fontSize:11,color:'rgba(255,255,255,.8)'}}>
         <div style={{display:'flex',alignItems:'center',gap:8,fontWeight:600}}>
-          <div style={{width:24,height:24,background:'#fff',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,color:'var(--navy)',fontWeight:900}}>⚜</div>
-          Government of India &nbsp;|&nbsp; Ministry of Finance &nbsp;|&nbsp; Department of Revenue
+          <div style={{width:22,height:22,background:'#fff',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'var(--navy)',fontWeight:900}}>⚜</div>
+          Government of India &nbsp;|&nbsp; Ministry of Finance &nbsp;|&nbsp; CBIC
         </div>
-        <div style={{marginLeft:'auto',opacity:.7}}>Central Board of Indirect Taxes and Customs (CBIC)</div>
+        <span style={{marginLeft:'auto',opacity:.6}}>HSNS Cess Portal · Advisory No. 04/2026 · CNNCO-11/40/1/2026</span>
       </div>
+      <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px',gap:40,flexWrap:'wrap'}}>
 
-      {/* Main login area */}
-      <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
-        <div style={{width:'100%',maxWidth:440}}>
-          {/* Logo block */}
-          <div style={{textAlign:'center',marginBottom:32}}>
-            <div style={{width:72,height:72,background:'#fff',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:12,fontWeight:700,color:'var(--navy)',lineHeight:1.2,letterSpacing:.5}}>CBIC<br/>ELSM</div>
-            <div style={{color:'#fff',fontSize:22,fontWeight:700,letterSpacing:-.3,marginBottom:4}}>ELSM Portal</div>
-            <div style={{color:'rgba(255,255,255,.65)',fontSize:13}}>Electronic Lock Solution for Machines</div>
-            <div style={{color:'var(--saffron2)',fontSize:12,marginTop:4,fontWeight:600}}>HSNS CESS PORTAL · CBIC · DGGI · BSNL</div>
+        <div style={{width:340,color:'#fff'}}>
+          <div style={{fontSize:26,fontWeight:300,lineHeight:1.3,marginBottom:10,letterSpacing:-.5}}>Electronic Lock<br/><strong style={{fontWeight:700,color:'var(--saffron2)'}}>Solution for Machines</strong></div>
+          <div style={{fontSize:12,color:'rgba(255,255,255,.6)',lineHeight:1.7,marginBottom:20}}>CBIC · DGGI · BSNL EB Platinum Unit<br/>Tender: CNNCO-11/40/1/2026 · Advisory No. 04/2026</div>
+
+          <div style={{display:'flex',gap:6,marginBottom:14}}>
+            {[['cbic','CBIC / GST Officers'],['bsnl','BSNL Personnel']].map(([k,l])=>(
+              <button key={k} onClick={()=>setActiveGroup(k)} style={{flex:1,padding:'7px 10px',borderRadius:4,border:'1.5px solid '+(activeGroup===k?'rgba(255,255,255,.6)':'rgba(255,255,255,.15)'),background:activeGroup===k?'rgba(255,255,255,.15)':'transparent',color:'#fff',cursor:'pointer',fontSize:11.5,fontWeight:activeGroup===k?700:400,fontFamily:'var(--font)'}}>{l}</button>
+            ))}
           </div>
 
-          {/* Card */}
-          <div style={{background:'#fff',borderRadius:12,padding:'32px 32px 28px',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
-            <div style={{fontSize:15,fontWeight:700,color:'var(--navy)',marginBottom:4}}>Sign in to your account</div>
-            <div style={{fontSize:12,color:'var(--text3)',marginBottom:24}}>Use your CBIC ELSM portal credentials</div>
-
-            <form onSubmit={handleLogin}>
-              <div style={{marginBottom:16}}>
-                <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--navy)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:5}}>Email Address</label>
-                <input
-                  type="email" required autoFocus
-                  value={email} onChange={e=>setEmail(e.target.value)}
-                  placeholder="you@elsm.in"
-                  style={{width:'100%',padding:'10px 12px',borderRadius:'var(--r)',border:'1.5px solid var(--border)',fontSize:13,fontFamily:'var(--font)',outline:'none',transition:'border .12s'}}
-                  onFocus={e=>e.target.style.borderColor='var(--navy3)'}
-                  onBlur={e=>e.target.style.borderColor='var(--border)'}
-                />
-              </div>
-              <div style={{marginBottom:20}}>
-                <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--navy)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:5}}>Password</label>
-                <div style={{position:'relative'}}>
-                  <input
-                    type={showPwd?'text':'password'} required
-                    value={password} onChange={e=>setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    style={{width:'100%',padding:'10px 40px 10px 12px',borderRadius:'var(--r)',border:'1.5px solid var(--border)',fontSize:13,fontFamily:'var(--font)',outline:'none',transition:'border .12s'}}
-                    onFocus={e=>e.target.style.borderColor='var(--navy3)'}
-                    onBlur={e=>e.target.style.borderColor='var(--border)'}
-                  />
-                  <button type="button" onClick={()=>setShowPwd(!showPwd)} style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:12,padding:'2px 4px'}}>
-                    {showPwd?'Hide':'Show'}
-                  </button>
+          {activeGroup==='cbic'&&(
+            <div>
+              <div style={{fontSize:10,color:'rgba(255,255,255,.4)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Select your role — GST Hierarchy</div>
+              {CBIC_USERS.map((u)=>(
+                <div key={u.email} onClick={()=>quickLogin(u)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',borderRadius:6,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',cursor:'pointer',marginBottom:6,transition:'all .15s'}}
+                  onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.12)'}
+                  onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.06)'}>
+                  <div style={{width:7,height:7,borderRadius:'50%',background:u.color,flexShrink:0}}/>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:11.5,fontWeight:600,color:'#fff'}}>{u.label}</div>
+                    <div style={{fontSize:10,color:'rgba(255,255,255,.5)'}}>{u.sublabel}</div>
+                  </div>
+                  <div style={{fontSize:9.5,color:'rgba(255,255,255,.3)'}}>›</div>
                 </div>
-              </div>
-
-              {error&&(
-                <div style={{background:'var(--red-light)',border:'1px solid #ef9a9a',borderRadius:'var(--r)',padding:'10px 12px',fontSize:12,color:'var(--red)',marginBottom:16,lineHeight:1.5}}>
-                  ⚠ {error}
-                </div>
-              )}
-
-              <button type="submit" disabled={loading} style={{width:'100%',padding:'11px',borderRadius:'var(--r)',border:'none',background:loading?'var(--border)':'var(--navy)',color:'#fff',fontSize:13.5,fontWeight:700,cursor:loading?'not-allowed':'pointer',fontFamily:'var(--font)',transition:'background .12s',letterSpacing:'.02em'}}>
-                {loading?'Signing in…':'Sign In →'}
-              </button>
-            </form>
-
-            {/* Quick login */}
-            <div style={{marginTop:20,paddingTop:16,borderTop:'1px solid var(--border)'}}>
-              <div style={{fontSize:10.5,color:'var(--text3)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>Quick Login (Demo)</div>
-              <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                {DEMO_USERS.map(u=>(
-                  <button key={u.email} onClick={()=>{setEmail(u.email);setPassword('Admin@1234');}} style={{padding:'4px 10px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text2)',fontSize:11,cursor:'pointer',fontFamily:'var(--font)',transition:'all .12s'}}
-                    onMouseEnter={e=>{e.target.style.borderColor='var(--navy)';e.target.style.color='var(--navy)';}}
-                    onMouseLeave={e=>{e.target.style.borderColor='var(--border)';e.target.style.color='var(--text2)';}}>
-                    {u.label}
-                  </button>
-                ))}
-              </div>
-              <div style={{fontSize:10.5,color:'var(--text-light)',marginTop:6}}>All demo accounts use password: <span style={{fontFamily:'var(--mono)',color:'var(--text3)'}}>Admin@1234</span></div>
+              ))}
             </div>
-          </div>
+          )}
 
-          <div style={{textAlign:'center',marginTop:16,fontSize:11,color:'rgba(255,255,255,.4)'}}>
-            © 2026 CBIC, Govt. of India · ELSM Portal v2.4.1 · Advisory No. 04/2026
+          {activeGroup==='bsnl'&&(
+            <div>
+              <div style={{fontSize:10,color:'rgba(255,255,255,.4)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Select your role — BSNL Personnel</div>
+              {BSNL_USERS.map((u)=>(
+                <div key={u.email} onClick={()=>quickLogin(u)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:6,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',cursor:'pointer',marginBottom:6,transition:'all .15s'}}
+                  onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.12)'}
+                  onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.06)'}>
+                  <div style={{width:7,height:7,borderRadius:'50%',background:u.color,flexShrink:0}}/>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12,fontWeight:600,color:'#fff'}}>{u.label}</div>
+                    <div style={{fontSize:10,color:'rgba(255,255,255,.5)'}}>{u.sublabel}</div>
+                  </div>
+                  <div style={{fontSize:9.5,color:'rgba(255,255,255,.3)'}}>›</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{background:'#fff',borderRadius:12,padding:'26px 26px 22px',width:340,boxShadow:'0 20px 60px rgba(0,0,0,.28)'}}>
+          <div style={{width:48,height:48,background:'var(--navy)',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9.5,fontWeight:700,color:'#fff',lineHeight:1.3,textAlign:'center',marginBottom:14}}>CBIC<br/>ELSM</div>
+          <div style={{fontSize:14,fontWeight:700,color:'var(--navy)',marginBottom:2}}>Sign in to ELSM Portal</div>
+          <div style={{fontSize:11.5,color:'var(--text3)',marginBottom:18}}>CBIC HSNS Cess · Electronic Lock Management</div>
+          <form onSubmit={doLogin}>
+            <div style={{marginBottom:12}}>
+              <label style={{display:'block',fontSize:10.5,fontWeight:700,color:'var(--navy)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:4}}>Email / Login ID</label>
+              <input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@gstin.gov.in" style={{width:'100%',padding:'9px 11px',borderRadius:'var(--r)',border:'1.5px solid var(--border)',fontSize:12.5,fontFamily:'var(--font)',outline:'none'}}/>
+            </div>
+            <div style={{marginBottom:16,position:'relative'}}>
+              <label style={{display:'block',fontSize:10.5,fontWeight:700,color:'var(--navy)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:4}}>Password</label>
+              <input type={showPwd?'text':'password'} required value={password} onChange={e=>setPassword(e.target.value)} style={{width:'100%',padding:'9px 38px 9px 11px',borderRadius:'var(--r)',border:'1.5px solid var(--border)',fontSize:12.5,fontFamily:'var(--font)',outline:'none'}}/>
+              <button type="button" onClick={()=>setShowPwd(!showPwd)} style={{position:'absolute',right:10,top:28,background:'none',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:11}}>{showPwd?'Hide':'Show'}</button>
+            </div>
+            {error&&<div style={{background:'var(--red-light)',border:'1px solid #ef9a9a',borderRadius:'var(--r)',padding:'8px 10px',fontSize:11.5,color:'var(--red)',marginBottom:12,lineHeight:1.5}}>⚠ {error}</div>}
+            <button type="submit" disabled={loading} style={{width:'100%',padding:'10px',borderRadius:'var(--r)',border:'none',background:loading?'var(--border)':'var(--navy)',color:'#fff',fontSize:13,fontWeight:700,cursor:loading?'not-allowed':'pointer',fontFamily:'var(--font)',marginBottom:4}}>
+              {loading?'Signing in…':'Sign In →'}
+            </button>
+          </form>
+          <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border)'}}>
+            <div style={{fontSize:10,color:'var(--text3)',marginBottom:4}}>All demo accounts use password: <span style={{fontFamily:'var(--mono)',color:'var(--text2)',fontWeight:600}}>Admin@1234</span></div>
+            <div style={{fontSize:10,color:'var(--text-light)'}}>Click any role on the left to auto-fill credentials</div>
           </div>
         </div>
       </div>
+      <div style={{textAlign:'center',padding:'10px 0 16px',fontSize:10.5,color:'rgba(255,255,255,.3)'}}>© 2026 CBIC, Govt. of India · ELSM Portal v2.5.0 · BSNL EB Platinum Unit, Gurugram</div>
     </div>
   );
 }
@@ -500,13 +499,13 @@ function Header({time,user,onLogout}){
       <div className="header-right">
         <div className="badge-live"><div className="dot-live"/>Live</div>
         <div className="time-chip">{time.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})}</div>
-        <div className="user-pill" onClick={onLogout} title="Click to logout" style={{cursor:'pointer'}}>
+        <div className="user-pill" onClick={onLogout} title="Click to sign out" style={{cursor:'pointer'}}>
           <div className="avatar">{initials}</div>
           <div style={{lineHeight:1.3}}>
             <div style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>{user?.name||'User'}</div>
-            <div style={{fontSize:10,color:'var(--text3)'}}>{ROLE_LABELS[user?.role]||user?.role}</div>
+            <div style={{fontSize:10,color:'var(--text3)'}}>{(ROLE_LABELS||{})[user?.role]||user?.role}</div>
           </div>
-          <div style={{fontSize:10,color:'var(--red)',fontWeight:600,marginLeft:4}}>↩</div>
+          <div style={{fontSize:10,color:'var(--red)',marginLeft:4,fontWeight:700}} title="Sign out">↩</div>
         </div>
       </div>
     </div>
@@ -522,6 +521,7 @@ function Sidebar({active,setActive}){
     {id:'map',label:'Zone Coverage',icon:'map'},
     {id:'sla',label:'SLA & Reports',icon:'sla'},
     {id:'dggi',label:'DGGI Seal Tickets',icon:'dggi'},
+    {id:'gst',label:'GST Master Data',icon:'map',badge:null},
   ];
   return(
     <div className="sidebar">
@@ -606,78 +606,51 @@ function AlertCard({a}){
 }
 
 // ─── Pages ──────────────────────────────────────────────────────
-function Dashboard(){
-  const totalLocks=LOCKS.length,online=LOCKS.filter(l=>l.status==='online').length,offline=LOCKS.filter(l=>l.status==='offline').length,breaches=LOCKS.filter(l=>l.status==='breach').length,lowBattery=LOCKS.filter(l=>l.battery<25).length;
-  const slaAvg=(MONTHLY_SLA.reduce((a,b)=>a+b)/MONTHLY_SLA.length).toFixed(1);
-  return(
-    <div>
-      <div className="page-header">
-        <div className="breadcrumb"><a href="#">Home</a> <span>/</span> Dashboard</div>
-        <div className="page-title">Operations Dashboard</div>
-        <div className="page-subtitle">Real-time monitoring · BSNL EB Gurgaon Platinum Unit · PAN India HSNS Cess e-Lock Deployment</div>
-      </div>
-      <div className="kpi-grid">
-        <KPI label="Total E-Locks" value={totalLocks} change="4 new this week" changeDir="up" accent="#1a237e" delay={.04}/>
-        <KPI label="Online / Connected" value={online} change={`${((online/totalLocks)*100).toFixed(0)}% connected`} changeDir="up" accent="#2e7d32" delay={.08}/>
-        <KPI label="Critical Alerts" value={breaches+offline} change={`${lowBattery} low battery`} changeDir={breaches>0?'down':'neutral'} accent="#c62828" delay={.12}/>
-        <KPI label="Avg SLA" value={`${slaAvg}%`} change="Above 99% target" changeDir="up" accent="#e65100" delay={.16}/>
-      </div>
-      <div className="grid-65" style={{marginBottom:14}}>
-        <div className="card animate-in stagger-1">
-          <div className="card-title">ESE / EUE Activity (Last 6 Months)<div style={{display:'flex',gap:16}}>
-            <span style={{display:'flex',alignItems:'center',gap:5,fontSize:11}}><span style={{width:10,height:10,borderRadius:2,background:'#1a237e',display:'inline-block'}}/>Sealing (ESE)</span>
-            <span style={{display:'flex',alignItems:'center',gap:5,fontSize:11}}><span style={{width:10,height:10,borderRadius:2,background:'#e65100',display:'inline-block'}}/>Unsealing (EUE)</span>
-          </div></div>
-          <LineChart labels={months} datasets={[{label:'ESE',data:MONTHLY_ESE,borderColor:'#1a237e',backgroundColor:'rgba(26,35,126,.06)'},{label:'EUE',data:MONTHLY_EUE,borderColor:'#e65100',backgroundColor:'rgba(230,81,0,.06)'}]}/>
-        </div>
-        <div className="card animate-in stagger-2">
-          <div className="card-title">SLA Performance</div>
-          <div style={{display:'flex',justifyContent:'center'}}><SLAGauge value={parseFloat(slaAvg)}/></div>
-          <div style={{display:'flex',justifyContent:'space-between',padding:'0 4px',marginTop:4}}>
-            {months.map((m,i)=>(
-              <div key={m} style={{textAlign:'center'}}>
-                <div style={{fontSize:9,color:'var(--text3)',fontFamily:'var(--mono)',marginBottom:2}}>{m}</div>
-                <div style={{fontSize:11,fontWeight:700,color:MONTHLY_SLA[i]>=99?'var(--green)':'var(--amber)'}}>{MONTHLY_SLA[i]}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="grid-2" style={{marginBottom:14}}>
-        <div className="card animate-in stagger-3">
-          <div className="card-title">Recent Alerts &amp; Notices<span className="card-title-action">View All →</span></div>
-          {ALERTS.slice(0,3).map(a=><AlertCard key={a.id} a={a}/>)}
-        </div>
-        <div className="card animate-in stagger-4">
-          <div className="card-title">Pending ESE/EUE (SLA Tracking)<span className="card-title-action">Manage →</span></div>
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>Event ID</th><th>Machine</th><th>City</th><th>Status</th><th>SLA</th></tr></thead>
-              <tbody>
-                {ESE_EVENTS.filter(e=>e.status!=='Completed').map(e=>(
-                  <tr key={e.id}>
-                    <td><span className="chip">{e.id}</span></td>
-                    <td style={{fontFamily:'var(--mono)',fontSize:11}}>{e.machine}</td>
-                    <td style={{color:'var(--text2)'}}>{e.city}</td>
-                    <td><span className={`pill ${e.status==='In Progress'?'charging':e.status==='Breach'?'breach':'sealed'}`}>{e.status}</span></td>
-                    <td style={{fontSize:10.5,fontFamily:'var(--mono)',color:e.sla.includes('✗')?'var(--red)':e.sla.includes('⚠')?'var(--amber)':'var(--text3)'}}>{e.sla}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      <div className="card animate-in">
-        <div className="card-title">Battery Distribution (All Deployed Locks)
-          <span style={{fontSize:11,color:'var(--text2)',fontWeight:500}}><span style={{color:'var(--red)',fontWeight:700}}>{lowBattery} critical</span> · {LOCKS.filter(l=>l.battery<50).length} below 50%</span>
-        </div>
-        <BarChart labels={['0–20%','21–40%','41–60%','61–80%','81–100%']} data={[LOCKS.filter(l=>l.battery<=20).length,LOCKS.filter(l=>l.battery>20&&l.battery<=40).length,LOCKS.filter(l=>l.battery>40&&l.battery<=60).length,LOCKS.filter(l=>l.battery>60&&l.battery<=80).length,LOCKS.filter(l=>l.battery>80).length]} color="rgba(26,35,126,.5)"/>
-      </div>
-    </div>
-  );
+function Dashboard({user,tickets}){
+  const role=(user&&user.role)||'super_admin';
+  const userZone=(user&&user.zone)||'All Zones';
+  const userComm=(user&&user.comm)||null;
+  const ALL_GM=[
+    {id:'MCH-001',zone:'Delhi Zone',comm:'Delhi North',premise:'ABC Plant 1',regNo:'REG12345',status:'RUNNING',locked:true},
+    {id:'MCH-002',zone:'Delhi Zone',comm:'Delhi East',premise:'Ganesh Plant Delhi',regNo:'CHTPR0365MHS00320001',status:'RUNNING',locked:true},
+    {id:'MCH-003',zone:'Delhi Zone',comm:'Delhi East',premise:'Ganesh Plant Delhi',regNo:'CHTPR0365MHS00320002',status:'RUNNING',locked:false},
+    {id:'MCH-004',zone:'Mumbai Zone',comm:'Mumbai West',premise:'Bombay Pan Plant',regNo:'CHTPR0365MHS00300001',status:'RUNNING',locked:true},
+    {id:'MCH-005',zone:'Mumbai Zone',comm:'Mumbai West',premise:'Bombay Pan Plant',regNo:'CHTPR0365MHS00300002',status:'STOPPED',locked:false},
+    {id:'MCH-006',zone:'Hyderabad Zone',comm:'Hyderabad I',premise:'Deccan Tobacco',regNo:'CHTPR0365MHS00330001',status:'RUNNING',locked:true},
+    {id:'MCH-007',zone:'Hyderabad Zone',comm:'Hyderabad I',premise:'Deccan Tobacco',regNo:'CHTPR0365MHS00330002',status:'RUNNING',locked:false},
+    {id:'MCH-008',zone:'Chennai Zone',comm:'Chennai North',premise:'South India Tobacco',regNo:'CHTPR0365MHS00180001',status:'RUNNING',locked:true},
+    {id:'MCH-009',zone:'Kolkata Zone',comm:'Kolkata South',premise:'Eastern Masala',regNo:'CHTPR0365MHS00190001',status:'STOPPED',locked:false},
+    {id:'MCH-010',zone:'Bengaluru Zone',comm:'Bengaluru NW',premise:'Deccan Leaf',regNo:'CHTPR0365MHS00420001',status:'RUNNING',locked:true},
+    {id:'MCH-011',zone:'Ahmedabad Zone',comm:'Ahmedabad South',premise:'Gujarat Pan Works',regNo:'CHTPR0365MHS00510001',status:'RUNNING',locked:false},
+    {id:'MCH-012',zone:'Delhi Zone',comm:'Gurugram',premise:'Haryana Spice Foods',regNo:'CHTPR0365MHS00220001',status:'RUNNING',locked:true},
+  ];
+  const LMZ={'All Zones':10,'Delhi Zone':3,'Mumbai Zone':1,'Hyderabad Zone':1,'Chennai Zone':1,'Kolkata Zone':1,'Bengaluru Zone':0,'Ahmedabad Zone':0};
+  const LMC={'Delhi East':1,'Delhi North':1,'Mumbai West':1,'Hyderabad I':1,'Gurugram':0,'Chennai North':0,'Kolkata South':0};
+  const scM=userZone==='All Zones'?ALL_GM:userComm?ALL_GM.filter(m=>m.comm===userComm):ALL_GM.filter(m=>m.zone===userZone);
+  const totM=scM.length;const lastM=userComm?(LMC[userComm]!==undefined?LMC[userComm]:0):(LMZ[userZone]||0);
+  const mChg=lastM>0?Math.round(((totM-lastM)/lastM)*100):null;
+  const locked=scM.filter(m=>m.locked).length;
+  const scL=userZone==='All Zones'?LOCKS:LOCKS.filter(l=>{const z=userZone.replace(' Zone','').split(' ')[0].toLowerCase();return l.city.toLowerCase().includes(z);});
+  const onL=scL.filter(l=>l.status==='online').length||Math.round(locked*0.9)||0;
+  const ofL=scL.filter(l=>l.status==='offline').length||0;
+  const ticketsArr=Array.isArray(tickets)?tickets:[];const scT=userZone==='All Zones'?ticketsArr:userComm?ticketsArr.filter(t=>t.commissionerate===userComm||t.city===userComm||t.comm===userComm):ticketsArr.filter(t=>t.zone===userZone);
+  const inP=scT.filter(t=>['New','Pending','Approved','Assigned','In Progress'].includes(t.status)).length;
+  const TA=[{id:'A1',lock:'EL-1047',city:'Mumbai West',zone:'Mumbai Zone',comm:'Mumbai West',msg:'Lock moved outside geo-fence. Tamper suspected.',time:'11 min ago',type:'geofence'},{id:'A2',lock:'EL-1023',city:'Patna I',zone:'Kolkata Zone',comm:'Kolkata South',msg:'Anti-cut triggered. Physical tampering detected.',time:'38 min ago',type:'tamper'},{id:'A3',lock:'EL-1031',city:'Bhopal',zone:'Delhi Zone',comm:'Delhi West',msg:'Seal broken without OTP authorisation.',time:'2 hrs ago',type:'tamper'},{id:'A4',lock:'EL-1058',city:'Delhi East',zone:'Delhi Zone',comm:'Delhi East',msg:'Geo-fence breach — lock moved 450m from premise.',time:'3 hrs ago',type:'geofence'},{id:'A5',lock:'EL-1072',city:'Hyderabad',zone:'Hyderabad Zone',comm:'Hyderabad I',msg:'Tamper alert — casing opened without authorisation.',time:'4 hrs ago',type:'tamper'}];
+  const scA=userZone==='All Zones'?TA:userComm?TA.filter(a=>a.comm===userComm):TA.filter(a=>a.zone===userZone);
+  const tC=scA.filter(a=>a.type==='tamper').length;const gC=scA.filter(a=>a.type==='geofence').length;
+  const scopeLbl=userComm||(userZone==='All Zones'?'PAN India':userZone);
+  function Blk({lbl,val,accent,chg,chgUp,s1l,s1v,s1c,s2l,s2v,s2c,icon}){return(<div style={{background:'var(--bg-white)',border:'1px solid var(--border)',borderTop:'3px solid '+accent,borderRadius:'var(--r2)',padding:'14px 16px',boxShadow:'var(--shadow)'}}><div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}><div style={{fontSize:10,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.06em'}}>{lbl}</div><span style={{fontSize:15,opacity:.5}}>{icon}</span></div><div style={{fontSize:30,fontWeight:700,letterSpacing:'-1px',fontFamily:'var(--mono)',color:'var(--navy)',lineHeight:1,marginBottom:3}}>{val}</div>{chg!==null&&chg!==undefined&&<div style={{fontSize:10.5,fontWeight:600,color:chgUp?'var(--green)':'var(--red)',marginBottom:4}}>{chgUp?'▲':'▼'} {Math.abs(chg)}% vs last month</div>}<div style={{borderTop:'1px solid var(--border)',paddingTop:7,marginTop:3,display:'flex',gap:14}}><div><div style={{fontSize:9,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:2}}>{s1l}</div><div style={{fontSize:15,fontWeight:700,fontFamily:'var(--mono)',color:s1c}}>{s1v}</div></div><div><div style={{fontSize:9,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:2}}>{s2l}</div><div style={{fontSize:15,fontWeight:700,fontFamily:'var(--mono)',color:s2c}}>{s2v}</div></div></div></div>);}
+  return(<div><div className="page-header"><div className="breadcrumb"><a href="#">Home</a> <span>/</span> Dashboard</div><div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}><div><div className="page-title">Operations Dashboard</div><div className="page-subtitle">{role==='field_engineer'?'Assigned tickets — BSNL Field Operations':role==='bsnl_supervisor'?'Zone overview — BSNL Supervisor':role==='auditor'?'Read-only — PMO Compliance':'Real-time monitoring — HSNS Cess — '+scopeLbl}</div></div><span style={{fontSize:11,fontWeight:700,padding:'3px 12px',borderRadius:20,background:'var(--navy-light)',color:'var(--navy)',border:'1px solid var(--border)'}}>Scope: {scopeLbl}</span></div></div>
+  <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:14}}>
+    <Blk lbl="Total Machines Declared" val={totM} accent="#1a237e" chg={mChg} chgUp={mChg>=0} icon="⚙" s1l="Running" s1v={scM.filter(m=>m.status==='RUNNING').length} s1c="var(--green)" s2l="Stopped" s2v={scM.filter(m=>m.status==='STOPPED').length} s2c="var(--red)"/>
+    <Blk lbl="Locked Machines" val={locked} accent="#2e7d32" chg={10} chgUp={true} icon="🔒" s1l="Online" s1v={onL} s1c="var(--green)" s2l="Offline" s2v={ofL} s2c="var(--red)"/>
+    <Blk lbl="Lock Requests In Process" val={inP} accent="#e65100" chg={null} chgUp={false} icon="📋" s1l="New/Pending" s1v={scT.filter(t=>t.status==='New'||t.status==='Pending').length} s1c="var(--amber)" s2l="Assigned" s2v={scT.filter(t=>t.status==='Assigned'||t.status==='In Progress').length} s2c="var(--blue)"/>
+    <div style={{background:'var(--bg-white)',border:'1px solid var(--border)',borderTop:'3px solid var(--red)',borderRadius:'var(--r2)',padding:'14px 16px',boxShadow:'var(--shadow)'}}><div style={{fontSize:10,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:5}}>Security Alerts</div><div style={{fontSize:30,fontWeight:700,letterSpacing:'-1px',fontFamily:'var(--mono)',color:scA.length>0?'var(--red)':'var(--green)',lineHeight:1,marginBottom:3}}>{scA.length}</div><div style={{borderTop:'1px solid var(--border)',paddingTop:7,marginTop:3,display:'flex',gap:14}}><div><div style={{fontSize:9,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:2}}>Tamper</div><div style={{fontSize:15,fontWeight:700,fontFamily:'var(--mono)',color:tC>0?'var(--red)':'var(--text3)'}}>{tC}</div></div><div><div style={{fontSize:9,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:2}}>Geo-fence</div><div style={{fontSize:15,fontWeight:700,fontFamily:'var(--mono)',color:gC>0?'var(--amber)':'var(--text3)'}}>{gC}</div></div></div></div>
+  </div>
+  <div className="grid-2" style={{marginBottom:14}}><div className="card"><div className="card-title">Security Alerts — Tamper &amp; Geo-fence <span style={{fontSize:10,padding:'2px 8px',borderRadius:20,background:scA.length>0?'var(--red-light)':'var(--green-light)',color:scA.length>0?'var(--red)':'var(--green)',fontWeight:700}}>{scA.length} active</span></div>{scA.length===0?<div style={{fontSize:12,color:'var(--green)',padding:'10px 0',fontWeight:500}}>No tamper or geo-fence alerts in your jurisdiction</div>:scA.map(a=>(<div key={a.id} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'9px 11px',borderRadius:'var(--r)',borderLeft:'4px solid '+(a.type==='tamper'?'var(--red)':'var(--amber)'),background:a.type==='tamper'?'var(--red-light)':'var(--amber-light)',marginBottom:7}}><span style={{fontSize:15,flexShrink:0}}>{a.type==='tamper'?'🔓':'📍'}</span><div style={{flex:1}}><div style={{display:'flex',alignItems:'center',gap:5,marginBottom:2}}><span style={{fontSize:9.5,fontWeight:700,padding:'1px 5px',borderRadius:3,background:a.type==='tamper'?'var(--red)':'var(--amber)',color:'#fff'}}>{a.type==='tamper'?'TAMPER':'GEO-FENCE'}</span><span style={{fontFamily:'var(--mono)',fontSize:10,fontWeight:600,color:'var(--navy)'}}>{a.lock}</span><span style={{fontSize:10,color:'var(--text3)'}}>{a.city}</span></div><div style={{fontSize:11,color:'var(--text2)',lineHeight:1.5}}>{a.msg}</div></div><div style={{fontSize:9.5,color:'var(--text3)',fontFamily:'var(--mono)',whiteSpace:'nowrap'}}>{a.time}</div></div>))}</div><div className="card"><div className="card-title">Lock Requests In Process</div>{scT.filter(t=>['New','Pending','Assigned','In Progress'].includes(t.status)).length===0?<div style={{fontSize:12,color:'var(--text3)',padding:'10px 0',textAlign:'center'}}>No active requests in your jurisdiction</div>:<div className="table-wrap"><table><thead><tr><th>Ticket</th><th>Machine</th><th>Type</th><th>Status</th></tr></thead><tbody>{scT.filter(t=>['New','Pending','Assigned','In Progress'].includes(t.status)).slice(0,6).map(t=>(<tr key={t.id}><td><span className="chip">{t.id}</span></td><td style={{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--text3)'}}>{t.machine}</td><td><span style={{fontSize:10,padding:'1px 5px',borderRadius:3,background:t.type==='ESE'?'var(--navy-light)':'var(--amber-light)',color:t.type==='ESE'?'var(--navy)':'var(--saffron)',fontWeight:700}}>{t.type}</span></td><td><span className={'pill '+(t.status==='In Progress'||t.status==='Assigned'?'charging':'sealed')}>{t.status}</span></td></tr>))}</tbody></table></div>}</div></div>
+  <div className="card"><div className="card-title">Machines Under Jurisdiction <span style={{fontSize:11,color:'var(--text3)',fontWeight:400}}>{totM} declared · {locked} locked · {scM.filter(m=>m.status==='RUNNING').length} running</span></div><div className="table-wrap"><table><thead><tr><th>Machine ID</th><th>Reg. No.</th><th>Commissionerate</th><th>Premise</th><th>Status</th><th>Sealed</th></tr></thead><tbody>{scM.map(m=>(<tr key={m.id}><td><span className="chip">{m.id}</span></td><td style={{fontFamily:'var(--mono)',fontSize:10.5}}>{m.regNo}</td><td style={{fontSize:11.5,color:'var(--text2)'}}>{m.comm}</td><td style={{fontSize:11.5,color:'var(--text3)'}}>{m.premise}</td><td><span className={'pill '+(m.status==='RUNNING'?'online':'offline')}>{m.status}</span></td><td>{m.locked?<span style={{color:'var(--green)',fontWeight:700}}>Yes</span>:<span style={{color:'var(--text3)'}}>No</span>}</td></tr>))}</tbody></table></div></div>
+  </div>);
 }
-
 function LockInventory(){
   const [filter,setFilter]=useState('all');
   const [search,setSearch]=useState('');
@@ -925,33 +898,171 @@ function SLAReports(){
 }
 
 // ─── DGGI Tickets ────────────────────────────────────────────────
-function DGGITickets(){
-  const [tickets,setTickets]=useState(INITIAL_TICKETS);
+function DGGITickets({tickets:pt,setTickets:pst,user}){
+  const [_t,_st]=useState(INITIAL_TICKETS);const tickets=pt||_t;const setTickets=pst||_st;
   const [view,setView]=useState('list');
   const [selected,setSelected]=useState(null);
   const [filterStatus,setFilterStatus]=useState('all');
   const [filterType,setFilterType]=useState('all');
-  const [form,setForm]=useState({type:'ESE',firm:'',gstin:'',zone:'Delhi Zone',commissionerate:'Delhi South',division:'Division I',range:'Range I',rangeOfficer:'',machine:'',hsnsReg:'',requestRef:'',notes:'',priority:'Normal'});
   const [showSuccess,setShowSuccess]=useState('');
-  const filtered=tickets.filter(t=>(filterStatus==='all'||t.status===filterStatus)&&(filterType==='all'||t.type===filterType));
-  const statusColor={New:'var(--blue)',Assigned:'var(--navy)',InProgress:'var(--amber)','In Progress':'var(--amber)',Completed:'var(--green)',Pending:'var(--amber)',Breach:'var(--red)'};
-  const priorityColor={Normal:'var(--text3)',High:'var(--amber)',Urgent:'var(--saffron)',Critical:'var(--red)'};
-  function createTicket(){
-    const id=`TKT-2026-00${48+tickets.length-INITIAL_TICKETS.length}`;
-    setTickets(prev=>[{...form,id,machineReg:'',status:'New',requestDate:new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}),lockId:'',city:form.commissionerate},...prev]);
-    setShowSuccess(id);setView('list');setTimeout(()=>setShowSuccess(''),5000);
-  }
-  const comms=GST_HIERARCHY.commissionerates[form.zone]||[];
+  const [rejectReason,setRejectReason]=useState('');
+  const [showReject,setShowReject]=useState(false);
 
+  // ── USER JURISDICTION (from login) ──
+  const role=(user&&user.role)||'super_admin';
+  const userZone=(user&&user.zone)||'All Zones';
+  const userComm=(user&&user.comm)||null;
+  const userRange=(user&&user.range)||null;
+  const userName=(user&&user.name)||'';
+  const isNodal=role==='nodal_officer';
+  const isBSNLAdmin=role==='bsnl_admin'||role==='super_admin'||role==='cbic_admin';
+  const isAuditor=role==='auditor';
+  const isEngineer=role==='field_engineer';
+  const isSupervisor=role==='bsnl_supervisor';
+  const canCreate=isNodal;
+  const canApprove=isBSNLAdmin;
+  const canAssign=isBSNLAdmin||isSupervisor;
+
+  // ── GST MASTER DATA scoped by jurisdiction ──
+  const GST_FULL={
+    zones:['Delhi Zone','Mumbai Zone','Chennai Zone','Kolkata Zone','Bengaluru Zone','Hyderabad Zone','Ahmedabad Zone'],
+    comms:{
+      'Delhi Zone':['Delhi South','Delhi North','Delhi East','Delhi West','Gurugram','Noida','Faridabad'],
+      'Mumbai Zone':['Mumbai Central','Mumbai South','Mumbai West','Thane','Pune I','Pune II','Nashik'],
+      'Chennai Zone':['Chennai North','Chennai South','Chennai Outer','Coimbatore','Madurai'],
+      'Kolkata Zone':['Kolkata South','Kolkata North','Howrah','Haldia','Bhubaneswar'],
+      'Bengaluru Zone':['Bengaluru NW','Bengaluru South','Mysuru','Belagavi'],
+      'Hyderabad Zone':['Hyderabad I','Hyderabad II','Guntur','Visakhapatnam'],
+      'Ahmedabad Zone':['Ahmedabad South','Ahmedabad North','Surat','Rajkot','Vadodara I'],
+    },
+    divs:['Division I','Division II','Division III','Division IV','Division V'],
+    ranges:['Range I','Range II','Range III','Range IV','Range V','Range VI'],
+    premises:{
+      'Delhi East':['Shri Ganesh Tobacco Pvt Ltd','Eastern Leaf Corp','DeltaSmoke Industries'],
+      'Delhi North':['North India Pan Works','Capital Tobacco Co'],
+      'Delhi South':['South Delhi Tobacco Ltd'],
+      'Delhi West':['West Delhi Pan Corp'],
+      'Gurugram':['Haryana Spice Foods Ltd','GGN Masala Corp'],
+      'Noida':['Noida Leaf Industries'],
+      'Faridabad':['Faridabad Pan Works'],
+      'Mumbai West':['Bombay Pan Masala Works','West Coast Tobacco'],
+      'Mumbai Central':['Marine Lines Tobacco','Central Pan Co'],
+      'Mumbai South':['South Bombay Leaf Co'],
+      'Thane':['Thane Pan Industries'],
+      'Pune I':['Pune Tobacco Works'],
+      'Pune II':['Deccan Pan Co'],
+      'Nashik':['Nashik Leaf Corp'],
+      'Hyderabad I':['Deccan Tobacco Products','Hyderabad Pan Works'],
+      'Hyderabad II':['Secunderabad Tobacco Co'],
+      'Chennai North':['South India Tobacco Ltd','Madras Pan Corp'],
+      'Chennai South':['Chennai South Leaf Co'],
+      'Kolkata South':['Eastern Masala Pvt Ltd','Bengal Tobacco Co'],
+      'Kolkata North':['North Bengal Leaf Co'],
+    },
+    machines:{
+      'Shri Ganesh Tobacco Pvt Ltd':['M-DEL-014 (CHTPR0365MHS00320001)','M-DEL-015 (CHTPR0365MHS00320002)'],
+      'Eastern Leaf Corp':['M-DEL-016 (CHTPR0365MHS00320003)'],
+      'DeltaSmoke Industries':['M-DEL-017 (CHTPR0365MHS00320004)'],
+      'Bombay Pan Masala Works':['M-MUM-047 (CHTPR0365MHS00300001)','M-MUM-048 (CHTPR0365MHS00300002)'],
+      'Deccan Tobacco Products':['M-HYD-033 (CHTPR0365MHS00330001)'],
+      'South India Tobacco Ltd':['M-CHN-018 (CHTPR0365MHS00180001)'],
+      'Eastern Masala Pvt Ltd':['M-PAT-005 (CHTPR0365MHS00190001)'],
+      'Haryana Spice Foods Ltd':['M-GGN-022 (CHTPR0365MHS00220001)'],
+      'North India Pan Works':['M-DEL-020 (CHTPR0365MHS00210001)'],
+      'Capital Tobacco Co':['M-DEL-021 (CHTPR0365MHS00210002)'],
+    },
+    officers:{
+      'Delhi East':['Rajesh Kumar Sharma','Anil Verma','Sunita Rao'],
+      'Delhi North':['Vikram Nair','Prerna Gupta'],
+      'Delhi South':['Rajan Mehta','Anita Sharma'],
+      'Delhi West':['Suresh Kumar','Nidhi Joshi'],
+      'Gurugram':['Neha Verma','Pankaj Kumar'],
+      'Noida':['Amit Tiwari','Ritu Singh'],
+      'Faridabad':['Deepak Yadav'],
+      'Mumbai West':['Priya Sharma','Ashok Mehta'],
+      'Mumbai Central':['Rohit Kapoor','Smita Patil'],
+      'Hyderabad I':['Kavitha Reddy','Suresh Rao'],
+      'Chennai North':['Suresh Patel','Meera Iyer'],
+      'Kolkata South':['Vikram Yadav','Ratan Das'],
+    },
+    engineers:[
+      {id:'62c7aa11-679e-41d4-8ef5-1a2ddb2014f7',name:'Rajendra Prasad',zone:'Delhi Zone'},
+      {id:'eng-002',name:'Suresh Patil',zone:'Mumbai Zone'},
+      {id:'eng-003',name:'Dinesh Kumar',zone:'Delhi Zone'},
+      {id:'eng-004',name:'Ramesh Babu',zone:'Hyderabad Zone'},
+      {id:'eng-005',name:'Anil Shah',zone:'Ahmedabad Zone'},
+    ],
+  };
+
+  // Scope zones/comms available to this user
+  const availableZones = userZone==='All Zones' ? GST_FULL.zones : [userZone];
+  const availableComms = userComm ? [userComm] : (GST_FULL.comms[userZone]||GST_FULL.zones.flatMap(z=>GST_FULL.comms[z]||[]));
+  const availableRanges = userRange ? [userRange] : GST_FULL.ranges;
+
+  // Form state — pre-locked to user's jurisdiction
+  const [form,setForm]=useState({
+    type:'ESE',
+    zone: userZone==='All Zones'?GST_FULL.zones[0]:userZone,
+    comm: userComm||( userZone!=='All Zones'?(GST_FULL.comms[userZone]||[])[0]||'':''),
+    div:'Division I',
+    range: userRange||'Range I',
+    rangeOfficer: isNodal?userName:'',
+    firm:'',gstin:'',machine:'',hsnsReg:'',reqRef:'',notes:'',priority:'Normal',
+  });
+  const up=(k,v)=>setForm(p=>({...p,[k]:v}));
+
+  const premises=GST_FULL.premises[form.comm]||[];
+  const machines=form.firm?GST_FULL.machines[form.firm]||[]:[];
+  const officers=GST_FULL.officers[form.comm]||[];
+
+  // Ticket visibility — scoped to jurisdiction
+  const visibleTickets=useMemo(()=>{
+    let arr=Array.isArray(tickets)?tickets:[];
+    if(userZone!=='All Zones'&&!isBSNLAdmin&&!isAuditor){
+      arr=arr.filter(t=>t.zone===userZone);
+      if(userComm) arr=arr.filter(t=>t.commissionerate===userComm||t.city===userComm);
+    }
+    if(isEngineer) arr=arr.filter(t=>t.engineerId===((user&&user.engineerId)||''));
+    if(filterStatus!=='all') arr=arr.filter(t=>t.status===filterStatus);
+    if(filterType!=='all') arr=arr.filter(t=>t.type===filterType);
+    return arr;
+  },[tickets,filterStatus,filterType,userZone,userComm,role]);
+
+  const statusColor={New:'var(--blue)',Pending:'var(--amber)',Approved:'var(--teal)',Assigned:'var(--navy)','In Progress':'var(--amber)',Completed:'var(--green)',Breach:'var(--red)',Rejected:'var(--red)'};
+  const priorityColor={Normal:'var(--text3)',High:'var(--amber)',Urgent:'var(--saffron)',Critical:'var(--red)'};
+
+  function createTicket(){
+    const id='TKT-2026-00'+(48+tickets.length-INITIAL_TICKETS.length);
+    const now=new Date();
+    const sla=new Date(now.getTime()+3*24*60*60*1000);
+    const t={
+      id,type:form.type,
+      machine:form.machine.split(' ')[0]||form.machine,
+      machineReg:(form.machine.match(/\(([^)]+)\)/)||['',''])[1],
+      firm:'M/s '+form.firm,gstin:form.gstin,
+      zone:form.zone,commissionerate:form.comm,division:form.div,range:form.range,
+      rangeOfficer:form.rangeOfficer,
+      reqDate:now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}),
+      reqRef:form.reqRef||'RO/AUTO/2026/'+Math.round(Math.random()*999),
+      status:'New',priority:form.priority,lockId:'',engineerId:'',engineerName:'',
+      hsnsReg:form.hsnsReg,notes:form.notes,
+      approvedBy:'',approvedAt:'',assignedAt:'',city:form.comm,
+      slaDeadline:sla.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+' 23:59',
+    };
+    setTickets(prev=>[t,...prev]);
+    setShowSuccess(id);setView('list');setTimeout(()=>setShowSuccess(''),6000);
+  }
+
+  // ── CREATE FORM (Nodal Officer only, locked to their jurisdiction) ──
   if(view==='create') return(
     <div>
       <div className="page-header">
-        <div className="breadcrumb"><a href="#" onClick={()=>setView('list')}>Home</a> <span>/</span> <a href="#" onClick={()=>setView('list')}>DGGI Seal Tickets</a> <span>/</span> New Ticket</div>
-        <div className="page-title">Create Sealing / Unsealing Ticket</div>
-        <div className="page-subtitle">Range officer creates ESE/EUE ticket on receipt of manufacturer request (email/letter)</div>
+        <div className="breadcrumb"><a href="#" onClick={()=>setView('list')}>Tickets</a> <span>/</span> New Ticket</div>
+        <div className="page-title">Create {form.type==='ESE'?'Sealing (ESE)':'Unsealing (EUE)'} Ticket</div>
+        <div className="page-subtitle">{form.zone} · {form.comm} · {form.range} · {form.rangeOfficer}</div>
       </div>
-      <div className="info-box" style={{marginBottom:16}}>
-        <strong>Reference:</strong> HSNS Cess Act, 2025 (notified 16.12.2025, effective 01.02.2026) · Advisory No. 04/2026 · Form HSNS DEC-01 · Portal: www.cbic-gst.gov.in
+      <div style={{background:'var(--blue-light)',border:'1px solid #90caf9',borderRadius:'var(--r)',padding:'10px 13px',fontSize:11.5,color:'var(--blue)',lineHeight:1.6,marginBottom:14}}>
+        <strong>Ref:</strong> HSNS Cess Act 2025 (effective 01.02.2026) · Advisory No. 04/2026 · Form HSNS DEC-01 · Portal: www.cbic-gst.gov.in
       </div>
       <div className="grid-2">
         <div className="card">
@@ -959,54 +1070,86 @@ function DGGITickets(){
           <div className="form-group">
             <label className="form-label">Event Type *</label>
             <div style={{display:'flex',gap:8}}>
-              {['ESE','EUE'].map(t=>(
-                <button key={t} onClick={()=>setForm(f=>({...f,type:t}))} style={{flex:1,padding:'10px',borderRadius:4,border:`2px solid ${form.type===t?'var(--navy)':'var(--border)'}`,background:form.type===t?'var(--navy)':'#fff',color:form.type===t?'#fff':'var(--text2)',cursor:'pointer',fontFamily:'var(--font)',fontWeight:700,fontSize:12.5,transition:'all .12s'}}>
-                  {t==='ESE'?'🔒 Electronic Sealing (ESE)':'🔓 Electronic Unsealing (EUE)'}
-                </button>
-              ))}
+              {['ESE','EUE'].map(t=>(<button key={t} onClick={()=>up('type',t)} style={{flex:1,padding:'10px',borderRadius:4,border:'2px solid '+(form.type===t?'var(--navy)':'var(--border)'),background:form.type===t?'var(--navy)':'#fff',color:form.type===t?'#fff':'var(--text2)',cursor:'pointer',fontFamily:'var(--font)',fontWeight:700,fontSize:12.5}}>{t==='ESE'?'🔒 Electronic Sealing (ESE)':'🔓 Electronic Unsealing (EUE)'}</button>))}
             </div>
           </div>
           <div className="form-group">
-            <label className="form-label">Priority Level</label>
+            <label className="form-label">Priority</label>
             <div style={{display:'flex',gap:6}}>
-              {['Normal','High','Urgent','Critical'].map(p=>(
-                <button key={p} onClick={()=>setForm(f=>({...f,priority:p}))} style={{flex:1,padding:'7px 4px',borderRadius:4,border:`1.5px solid ${form.priority===p?priorityColor[p]:'var(--border)'}`,background:form.priority===p?'var(--navy-xlight)':'#fff',color:form.priority===p?priorityColor[p]:'var(--text3)',cursor:'pointer',fontFamily:'var(--font)',fontSize:11,fontWeight:700,transition:'all .12s'}}>
-                  {p}
-                </button>
-              ))}
+              {['Normal','High','Urgent','Critical'].map(p=>(<button key={p} onClick={()=>up('priority',p)} style={{flex:1,padding:'6px 4px',borderRadius:4,border:'1.5px solid '+(form.priority===p?priorityColor[p]:'var(--border)'),background:form.priority===p?'var(--navy-xlight)':'#fff',color:form.priority===p?priorityColor[p]:'var(--text3)',cursor:'pointer',fontFamily:'var(--font)',fontSize:11,fontWeight:700}}>{p}</button>))}
             </div>
           </div>
           <div className="form-group" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            <div><label className="form-label">HSNS Reg. No. *</label><input className="form-input" style={{fontFamily:'var(--mono)',fontSize:12}} placeholder="CHTPR0365MHS0XXX" value={form.hsnsReg} onChange={e=>setForm(f=>({...f,hsnsReg:e.target.value}))}/></div>
-            <div><label className="form-label">Machine No. *</label><input className="form-input" style={{fontFamily:'var(--mono)',fontSize:12}} placeholder="M-XXX-000" value={form.machine} onChange={e=>setForm(f=>({...f,machine:e.target.value}))}/></div>
+            <div><label className="form-label">HSNS Reg. No. *</label><input className="form-input" style={{fontFamily:'var(--mono)',fontSize:12}} placeholder="CHTPR0365MHS0XXX" value={form.hsnsReg} onChange={e=>up('hsnsReg',e.target.value)}/></div>
+            <div><label className="form-label">GSTIN *</label><input className="form-input" style={{fontFamily:'var(--mono)',fontSize:12}} placeholder="07AABCS1429B1Z5" value={form.gstin} onChange={e=>up('gstin',e.target.value)}/></div>
           </div>
-          <div className="form-group" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            <div><label className="form-label">Firm / Trade Name *</label><input className="form-input" placeholder="M/s Company Name" value={form.firm} onChange={e=>setForm(f=>({...f,firm:e.target.value}))}/></div>
-            <div><label className="form-label">GSTIN</label><input className="form-input" style={{fontFamily:'var(--mono)',fontSize:12}} placeholder="07AABCS1429B1Z5" value={form.gstin} onChange={e=>setForm(f=>({...f,gstin:e.target.value}))}/></div>
+          <div className="form-group">
+            <label className="form-label">Manufacturer / Premise *</label>
+            <select className="form-select" value={form.firm} onChange={e=>{up('firm',e.target.value);up('machine','');}}>
+              <option value="">— Select Premise —</option>
+              {premises.map(p=><option key={p}>{p}</option>)}
+            </select>
+            {premises.length===0&&<div style={{fontSize:10.5,color:'var(--amber)',marginTop:4}}>No premises in master data for {form.comm}. Enter machine manually below.</div>}
           </div>
-          <div className="form-group"><label className="form-label">Correspondence Ref. No. (Email / Letter)</label><input className="form-input" style={{fontFamily:'var(--mono)',fontSize:12}} placeholder="RO/XXX/2026/000" value={form.requestRef} onChange={e=>setForm(f=>({...f,requestRef:e.target.value}))}/></div>
-          <div className="form-group"><label className="form-label">Notes / Reason for Request</label><textarea className="form-textarea" placeholder="State the reason for sealing or unsealing event…" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}/></div>
+          <div className="form-group">
+            <label className="form-label">Machine *</label>
+            {machines.length>0
+              ?<select className="form-select" value={form.machine} onChange={e=>up('machine',e.target.value)}><option value="">— Select Machine —</option>{machines.map(m=><option key={m}>{m}</option>)}</select>
+              :<input className="form-input" style={{fontFamily:'var(--mono)',fontSize:12}} placeholder="M-XXX-000 (CHTPR...)" value={form.machine} onChange={e=>up('machine',e.target.value)}/>
+            }
+          </div>
+          <div className="form-group"><label className="form-label">Correspondence Ref. No.</label><input className="form-input" style={{fontFamily:'var(--mono)',fontSize:12}} placeholder="RO/DEL-E/2026/000" value={form.reqRef} onChange={e=>up('reqRef',e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">Notes / Reason</label><textarea className="form-textarea" placeholder="State reason for sealing/unsealing event..." value={form.notes} onChange={e=>up('notes',e.target.value)}/></div>
         </div>
         <div>
           <div className="card" style={{marginBottom:12}}>
             <div className="card-title">GST Jurisdiction</div>
-            {[{label:'GST Zone',key:'zone',opts:GST_HIERARCHY.zones},{label:'Commissionerate',key:'commissionerate',opts:comms},{label:'Division',key:'division',opts:GST_HIERARCHY.divisions},{label:'Range',key:'range',opts:GST_HIERARCHY.ranges}].map(({label,key,opts})=>(
-              <div className="form-group" key={key}>
-                <label className="form-label">{label} *</label>
-                <select className="form-select" value={form[key]} onChange={e=>{const upd={[key]:e.target.value};if(key==='zone')upd.commissionerate=(GST_HIERARCHY.commissionerates[e.target.value]||[])[0]||'';setForm(f=>({...f,...upd}));}}>
-                  {opts.map(o=><option key={o} value={o}>{o}</option>)}
+            <div className="form-group">
+              <label className="form-label">GST Zone</label>
+              {availableZones.length===1
+                ?<div style={{padding:'8px 11px',border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--navy-xlight)',fontSize:12.5,color:'var(--navy)',fontWeight:600}}>{form.zone} <span style={{fontSize:10,color:'var(--text3)',fontWeight:400}}>· Locked to your jurisdiction</span></div>
+                :<select className="form-select" value={form.zone} onChange={e=>{up('zone',e.target.value);up('comm',(GST_FULL.comms[e.target.value]||[])[0]||'');up('firm','');up('machine','');}}>{availableZones.map(z=><option key={z}>{z}</option>)}</select>
+              }
+            </div>
+            <div className="form-group">
+              <label className="form-label">Commissionerate</label>
+              {availableComms.length===1
+                ?<div style={{padding:'8px 11px',border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--navy-xlight)',fontSize:12.5,color:'var(--navy)',fontWeight:600}}>{form.comm} <span style={{fontSize:10,color:'var(--text3)',fontWeight:400}}>· Locked</span></div>
+                :<select className="form-select" value={form.comm} onChange={e=>{up('comm',e.target.value);up('firm','');up('machine','');}}>{availableComms.map(c=><option key={c}>{c}</option>)}</select>
+              }
+            </div>
+            <div className="form-group">
+              <label className="form-label">Division *</label>
+              <select className="form-select" value={form.div} onChange={e=>up('div',e.target.value)}>
+                {GST_FULL.divs.map(d=><option key={d}>{d}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Range</label>
+              {availableRanges.length===1
+                ?<div style={{padding:'8px 11px',border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--navy-xlight)',fontSize:12.5,color:'var(--navy)',fontWeight:600}}>{form.range} <span style={{fontSize:10,color:'var(--text3)',fontWeight:400}}>· Locked</span></div>
+                :<select className="form-select" value={form.range} onChange={e=>up('range',e.target.value)}>{availableRanges.map(r=><option key={r}>{r}</option>)}</select>
+              }
+            </div>
+            <div className="form-group">
+              <label className="form-label">Range Officer</label>
+              {isNodal
+                ?<div style={{padding:'8px 11px',border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--navy-xlight)',fontSize:12.5,color:'var(--navy)',fontWeight:600}}>{form.rangeOfficer} <span style={{fontSize:10,color:'var(--text3)',fontWeight:400}}>· You</span></div>
+                :<select className="form-select" value={form.rangeOfficer} onChange={e=>up('rangeOfficer',e.target.value)}>
+                  <option value="">— Select Officer —</option>
+                  {officers.map(o=><option key={o}>{o}</option>)}
                 </select>
-              </div>
-            ))}
-            <div className="form-group"><label className="form-label">Range Officer Name *</label><input className="form-input" placeholder="Full name of Range Officer" value={form.rangeOfficer} onChange={e=>setForm(f=>({...f,rangeOfficer:e.target.value}))}/></div>
+              }
+            </div>
           </div>
-          <div className="warning-box" style={{marginBottom:12}}>
-            <strong>⚠ SLA Obligation:</strong> Sealing/Unsealing must be completed within <strong>3 working days</strong> from the date of ticket creation. Penalty of 10%/day applies after Day 3. After 6 days, penalty escalates to 100% of monthly lock rental.
+          <div style={{background:'var(--amber-light)',border:'1px solid #ffcc80',borderRadius:'var(--r)',padding:'10px 13px',fontSize:11.5,color:'var(--amber)',lineHeight:1.6,marginBottom:12}}>
+            <strong>SLA:</strong> Sealing/Unsealing must be completed within <strong>3 working days</strong>. Penalty 10%/day from Day 4. After Day 7: 100% monthly lock rental.
           </div>
           <div style={{display:'flex',gap:8}}>
             <button className="btn-outline" style={{flex:1}} onClick={()=>setView('list')}>Cancel</button>
-            <button className="btn-primary" style={{flex:2,background:(!form.firm||!form.machine||!form.rangeOfficer||!form.hsnsReg)?'var(--border)':'var(--navy)',cursor:(!form.firm||!form.machine||!form.rangeOfficer||!form.hsnsReg)?'not-allowed':'pointer'}} onClick={createTicket} disabled={!form.firm||!form.machine||!form.rangeOfficer||!form.hsnsReg}>
-              Create Ticket &amp; Assign to Field Team
+            <button className="btn-primary" style={{flex:2,opacity:(!form.firm&&!form.machine)||!form.hsnsReg||!form.gstin?0.5:1,cursor:(!form.firm&&!form.machine)||!form.hsnsReg||!form.gstin?'not-allowed':'pointer'}}
+              onClick={createTicket} disabled={(!form.firm&&!form.machine)||!form.hsnsReg||!form.gstin}>
+              Submit {form.type} Ticket →
             </button>
           </div>
         </div>
@@ -1014,52 +1157,63 @@ function DGGITickets(){
     </div>
   );
 
-  if(view==='detail'&&selected) return(
-    <div>
-      <div className="page-header">
-        <div className="breadcrumb"><a href="#" onClick={()=>setView('list')}>Home</a> <span>/</span> <a href="#" onClick={()=>setView('list')}>DGGI Seal Tickets</a> <span>/</span> {selected.id}</div>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <div>
-            <div className="page-title">{selected.id} — {selected.type==='ESE'?'Electronic Sealing (ESE)':'Electronic Unsealing (EUE)'}</div>
-            <div className="page-subtitle">{selected.firm} · {selected.range}, {selected.commissionerate}, {selected.zone}</div>
+  // ── TICKET DETAIL ──
+  if(view==='detail'&&selected){
+    const t=tickets.find(x=>x.id===selected.id)||selected;
+    const [assignEng,setAssignEng]=useState(t.engineerId||'');
+    const scopedEngineers=GST_FULL.engineers.filter(e=>userZone==='All Zones'||e.zone===t.zone);
+    const upd=(ch)=>setTickets(prev=>prev.map(x=>x.id===t.id?{...x,...ch}:x));
+    const approve=()=>upd({status:'Approved',approvedBy:userName,approvedAt:new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false})});
+    const reject=()=>{upd({status:'Rejected',notes:(t.notes||'')+' | Rejected by '+userName+': '+rejectReason});setShowReject(false);};
+    const assign=()=>{const e=scopedEngineers.find(x=>x.id===assignEng);upd({status:'Assigned',engineerId:assignEng,engineerName:e&&e.name||'',assignedAt:new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false})});};
+    return(
+      <div>
+        <div className="page-header">
+          <div className="breadcrumb"><span onClick={()=>setView('list')} style={{cursor:'pointer',color:'var(--navy)'}}>Tickets</span> <span>/</span> {t.id}</div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div><div className="page-title">{t.id} — {t.type==='ESE'?'Electronic Sealing':'Electronic Unsealing'}</div><div className="page-subtitle">{t.firm} · {t.range}, {t.commissionerate}, {t.zone}</div></div>
+            <span className="pill" style={{background:(statusColor[t.status]||'#1a237e')+'22',color:statusColor[t.status]||'var(--navy)',fontSize:12,padding:'5px 12px'}}>{t.status}</span>
           </div>
-          <span className="pill" style={{background:`${statusColor[selected.status]}18`,color:statusColor[selected.status],fontSize:12,padding:'5px 12px'}}>{selected.status}</span>
         </div>
-      </div>
-      <div className="grid-2" style={{marginBottom:14}}>
-        <div className="card">
-          <div className="card-title">Ticket Information</div>
-          {[['Ticket ID',selected.id,'mono'],['Event Type',selected.type,''],['Priority',selected.priority,''],['Request Reference',selected.requestRef||'—','mono'],['Date of Request',selected.requestDate,'mono'],['Assigned Lock ID',selected.lockId||'Not Assigned','mono'],['City',selected.city,'']].map(([l,v,f])=>(
-            <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border)'}}>
-              <span style={{fontSize:12,color:'var(--text3)',fontWeight:600}}>{l}</span>
-              <span style={{fontSize:12,fontFamily:f?'var(--mono)':'var(--font)',color:'var(--text)',fontWeight:500}}>{v}</span>
+        {canApprove&&(t.status==='New'||t.status==='Pending')&&(
+          <div className="card" style={{marginBottom:12,borderLeft:'4px solid var(--amber)'}}>
+            <div className="card-title">Action Required — {role==='bsnl_admin'?'BSNL Admin':'Super Admin'}</div>
+            {showReject
+              ?<div><div className="form-group"><label className="form-label">Rejection Reason *</label><textarea className="form-textarea" value={rejectReason} onChange={e=>setRejectReason(e.target.value)} placeholder="State reason..."/></div><div style={{display:'flex',gap:8}}><button className="btn-outline" onClick={()=>setShowReject(false)}>Cancel</button><button style={{padding:'7px 16px',borderRadius:'var(--r)',border:'none',background:'var(--red)',color:'#fff',cursor:'pointer',fontFamily:'var(--font)',fontWeight:600,fontSize:12}} onClick={reject} disabled={!rejectReason}>Confirm Reject</button></div></div>
+              :<div style={{display:'flex',gap:8}}><button style={{padding:'8px 18px',borderRadius:'var(--r)',border:'none',background:'var(--green)',color:'#fff',cursor:'pointer',fontFamily:'var(--font)',fontWeight:600,fontSize:12}} onClick={approve}>✓ Approve</button><button style={{padding:'8px 18px',borderRadius:'var(--r)',border:'none',background:'var(--red)',color:'#fff',cursor:'pointer',fontFamily:'var(--font)',fontWeight:600,fontSize:12}} onClick={()=>setShowReject(true)}>✗ Reject</button></div>
+            }
+          </div>
+        )}
+        {canAssign&&t.status==='Approved'&&(
+          <div className="card" style={{marginBottom:12,borderLeft:'4px solid var(--blue)'}}>
+            <div className="card-title">Assign Field Engineer</div>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <select className="form-select" style={{flex:1}} value={assignEng} onChange={e=>setAssignEng(e.target.value)}>
+                <option value="">— Select Engineer —</option>
+                {scopedEngineers.map(e=><option key={e.id} value={e.id}>{e.name} ({e.zone})</option>)}
+              </select>
+              <button className="btn-primary" onClick={assign} disabled={!assignEng}>Assign →</button>
             </div>
-          ))}
-          {selected.notes&&<div style={{marginTop:10,padding:'10px 12px',background:'var(--navy-xlight)',borderRadius:4,fontSize:11.5,color:'var(--navy)',lineHeight:1.6,borderLeft:'3px solid var(--navy3)'}}>{selected.notes}</div>}
-        </div>
-        <div className="card">
-          <div className="card-title">HSNS / GST Jurisdiction Details</div>
-          {[['HSNS Reg. No.',selected.hsnsReg,'mono'],['Machine No.',selected.machine,'mono'],['Machine Reg. No.',selected.machineReg||'Pending','mono'],['Firm / Trade Name',selected.firm,''],['GSTIN',selected.gstin||'—','mono'],['GST Zone',selected.zone,''],['Commissionerate',selected.commissionerate,''],['Division',selected.division,''],['Range',selected.range,''],['Range Officer',selected.rangeOfficer,'']].map(([l,v,f])=>(
-            <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid var(--border)'}}>
-              <span style={{fontSize:11.5,color:'var(--text3)',fontWeight:600}}>{l}</span>
-              <span style={{fontSize:11.5,fontFamily:f?'var(--mono)':'var(--font)',color:'var(--text)',maxWidth:'55%',textAlign:'right'}}>{v}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="card">
-        <div className="card-title">Update Ticket Status</div>
-        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          {['New','Assigned','In Progress','Completed','Breach'].map(s=>(
-            <button key={s} onClick={()=>{setTickets(prev=>prev.map(t=>t.id===selected.id?{...t,status:s}:t));setSelected(prev=>({...prev,status:s}));}} style={{padding:'7px 18px',borderRadius:4,border:`2px solid ${selected.status===s?(statusColor[s]||'var(--navy)'):'var(--border)'}`,background:selected.status===s?'var(--navy-light)':'#fff',color:selected.status===s?(statusColor[s]||'var(--navy)'):'var(--text2)',cursor:'pointer',fontFamily:'var(--font)',fontSize:12,fontWeight:selected.status===s?700:500,transition:'all .12s'}}>
-              {s}
-            </button>
-          ))}
+          </div>
+        )}
+        <div className="grid-2" style={{marginBottom:12}}>
+          <div className="card"><div className="card-title">Ticket Information</div>
+            {[['Ticket ID',t.id,'mono'],['Event Type',t.type,''],['Priority',t.priority,''],['Request Ref',t.reqRef||'—','mono'],['Date',t.reqDate,'mono'],['Lock ID',t.lockId||'Not assigned','mono'],['SLA Deadline',t.slaDeadline,'mono']].map(([l,v,f])=>(
+              <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid var(--border)'}}><span style={{fontSize:11.5,color:'var(--text3)',fontWeight:600}}>{l}</span><span style={{fontSize:11.5,fontFamily:f?'var(--mono)':'var(--font)',color:'var(--text)',fontWeight:500}}>{v}</span></div>
+            ))}
+            {t.notes&&<div style={{marginTop:8,padding:'8px 10px',background:'var(--navy-xlight)',borderRadius:4,fontSize:11,color:'var(--navy)',lineHeight:1.6,borderLeft:'3px solid var(--navy3)'}}>{t.notes}</div>}
+          </div>
+          <div className="card"><div className="card-title">GST Jurisdiction</div>
+            {[['HSNS Reg.',t.hsnsReg,'mono'],['Machine No.',t.machine,'mono'],['Machine Reg.',t.machineReg||'—','mono'],['Firm',t.firm,''],['GSTIN',t.gstin||'—','mono'],['Zone',t.zone,''],['Commissionerate',t.commissionerate,''],['Division',t.division,''],['Range',t.range,''],['Range Officer',t.rangeOfficer,'']].map(([l,v,f])=>(
+              <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:'1px solid var(--border)'}}><span style={{fontSize:11,color:'var(--text3)',fontWeight:600}}>{l}</span><span style={{fontSize:11,fontFamily:f?'var(--mono)':'var(--font)',color:'var(--text)',maxWidth:'55%',textAlign:'right'}}>{v||'—'}</span></div>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
+  // ── TICKET LIST ──
   return(
     <div>
       <div className="page-header">
@@ -1067,87 +1221,217 @@ function DGGITickets(){
         <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
           <div>
             <div className="page-title">DGGI Sealing / Unsealing Ticket Register</div>
-            <div className="page-subtitle">HSNS Cess manufacturer e-lock requests · Range officer ticket management · Zone → Commissionerate → Division → Range</div>
+            <div className="page-subtitle">
+              {userComm?userComm+' · '+userZone:userZone==='All Zones'?'PAN India — All Zones':userZone}
+              {isNodal&&' · Your tickets only'}
+              {isAuditor&&' · Read-only view'}
+            </div>
           </div>
-          <button className="btn-primary" onClick={()=>setView('create')}>+ New Ticket</button>
+          {canCreate&&<button className="btn-primary" onClick={()=>setView('create')}>+ New Ticket</button>}
         </div>
       </div>
-      {showSuccess&&(
-        <div className="success-banner">
-          <span style={{fontSize:18,color:'var(--green)'}}>✓</span>
-          <div><div style={{fontWeight:700,color:'var(--green)',fontSize:13}}>Ticket created successfully</div><div style={{fontSize:11.5,color:'var(--text2)',fontFamily:'var(--mono)'}}>{showSuccess} · Assigned to BSNL field team · 3-day SLA window starts today</div></div>
+      {showSuccess&&<div className="success-banner"><span style={{fontSize:18,color:'var(--green)'}}>✓</span><div><div style={{fontWeight:700,color:'var(--green)',fontSize:13}}>Ticket {showSuccess} created</div><div style={{fontSize:11.5,color:'var(--text2)',fontFamily:'var(--mono)'}}>Sent to BSNL Admin for approval · 72-hr SLA started</div></div></div>}
+      {isAuditor&&<div style={{background:'var(--blue-light)',border:'1px solid #90caf9',borderRadius:'var(--r)',padding:'10px 13px',fontSize:11.5,color:'var(--blue)',marginBottom:12}}>Read-only access. You can view tickets but cannot create, approve, assign or modify any records.</div>}
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
+        {[{l:'Total',v:visibleTickets.length,a:'#1a237e'},{l:'New',v:visibleTickets.filter(t=>t.status==='New').length,a:'#1565c0'},{l:'In Progress',v:visibleTickets.filter(t=>t.status==='In Progress'||t.status==='Assigned'||t.status==='Approved').length,a:'#e65100'},{l:'Completed',v:visibleTickets.filter(t=>t.status==='Completed').length,a:'#2e7d32'},{l:'SLA Breach',v:visibleTickets.filter(t=>t.status==='Breach').length,a:'#c62828'}].map(k=>(
+          <div key={k.l} className="kpi" style={{'--kpi-accent':k.a}}><div className="kpi-label">{k.l}</div><div className="kpi-value" style={{fontSize:24}}>{k.v}</div></div>
+        ))}
+      </div>
+      <div className="card" style={{marginTop:12}}>
+        <div className="filter-bar">
+          {['all','New','Pending','Approved','Assigned','In Progress','Completed','Breach'].map(s=>(<button key={s} className={'filter-btn'+(filterStatus===s?' active':'')} onClick={()=>setFilterStatus(s)}>{s==='all'?'All':s}</button>))}
+          <button className={'filter-btn'+(filterType==='ESE'?' active':'')} onClick={()=>setFilterType(f=>f==='ESE'?'all':'ESE')}>🔒 ESE</button>
+          <button className={'filter-btn'+(filterType==='EUE'?' active':'')} onClick={()=>setFilterType(f=>f==='EUE'?'all':'EUE')}>🔓 EUE</button>
         </div>
-      )}
-      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(5,1fr)',marginBottom:14}}>
-        {[{l:'Total',v:tickets.length,a:'#1a237e'},{l:'New',v:tickets.filter(t=>t.status==='New').length,a:'#1565c0'},{l:'In Progress',v:tickets.filter(t=>t.status==='In Progress'||t.status==='Assigned').length,a:'#e65100'},{l:'Completed',v:tickets.filter(t=>t.status==='Completed').length,a:'#2e7d32'},{l:'SLA Breach',v:tickets.filter(t=>t.status==='Breach').length,a:'#c62828'}].map(k=>(
+        <div className="table-wrap"><table>
+          <thead><tr><th>Ticket ID</th><th>Type</th><th>Firm</th><th>Machine</th><th>Jurisdiction</th><th>Range Officer</th><th>Date</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+          <tbody>{visibleTickets.map(t=>(
+            <tr key={t.id} style={{cursor:'pointer'}} onClick={()=>{setSelected(t);setView('detail');}}>
+              <td><span className="chip">{t.id}</span></td>
+              <td><span style={{fontSize:10,padding:'1px 6px',borderRadius:3,background:t.type==='ESE'?'var(--navy-light)':'var(--amber-light)',color:t.type==='ESE'?'var(--navy)':'var(--saffron)',fontWeight:700}}>{t.type}</span></td>
+              <td style={{fontSize:11.5,maxWidth:150,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.firm}</td>
+              <td style={{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--text3)'}}>{t.machine}</td>
+              <td style={{fontSize:11.5,color:'var(--text2)'}}>{t.range}, {t.commissionerate}</td>
+              <td style={{fontSize:11.5}}>{t.rangeOfficer}</td>
+              <td style={{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--text3)'}}>{t.reqDate}</td>
+              <td style={{fontSize:10.5,fontWeight:700,color:priorityColor[t.priority]||'var(--text3)'}}>{t.priority}</td>
+              <td><span className={'pill '+(t.status==='Completed'?'online':t.status==='Breach'?'breach':t.status==='In Progress'||t.status==='Assigned'||t.status==='Approved'?'charging':'sealed')}>{t.status}</span></td>
+              <td onClick={e=>e.stopPropagation()}><button onClick={()=>{setSelected(t);setView('detail');}} style={{padding:'4px 10px',borderRadius:3,border:'1px solid var(--border)',background:'#fff',color:'var(--navy)',cursor:'pointer',fontSize:11,fontFamily:'var(--font)',fontWeight:600}}>View</button></td>
+            </tr>
+          ))}</tbody>
+        </table></div>
+        <div style={{marginTop:8,fontSize:11,color:'var(--text3)'}}>Showing {visibleTickets.length} ticket{visibleTickets.length!==1?'s':''} in your jurisdiction · Click any row for details</div>
+      </div>
+    </div>
+  );
+}
+function GSTMasterData(){
+  const [tab,setTab]=React.useState('hierarchy');
+  const [syncing,setSyncing]=React.useState(false);
+  const [lastSync,setLastSync]=React.useState('Today, 02:00 IST (scheduled)');
+  const [search,setSearch]=React.useState('');
+
+  const HIERARCHY=[
+    {id:'GST-H-001',zone:'Delhi Zone',zoneCode:'Z001',comm:'Delhi North',commCode:'DN001',div:'Division A',range:'Range 1',rangeCode:'R001',state:'Delhi',pin:'110001'},
+    {id:'GST-H-002',zone:'Delhi Zone',zoneCode:'Z001',comm:'Delhi East',commCode:'DE001',div:'Division II',range:'Range I',rangeCode:'R002',state:'Delhi',pin:'110032'},
+    {id:'GST-H-003',zone:'Mumbai Zone',zoneCode:'Z002',comm:'Mumbai West',commCode:'MW001',div:'Division III',range:'Range III',rangeCode:'R003',state:'Maharashtra',pin:'400053'},
+    {id:'GST-H-004',zone:'Chennai Zone',zoneCode:'Z003',comm:'Chennai North',commCode:'CN001',div:'Division I',range:'Range II',rangeCode:'R004',state:'Tamil Nadu',pin:'600001'},
+    {id:'GST-H-005',zone:'Kolkata Zone',zoneCode:'Z004',comm:'Kolkata South',commCode:'KS001',div:'Division II',range:'Range I',rangeCode:'R005',state:'West Bengal',pin:'700001'},
+  ];
+  const PREMISES=[
+    {id:'PRM-001',hid:'GST-H-001',mfr:'ABC Industries',name:'ABC Plant 1',code:'F001',gstin:'07ABCDE1234F1Z5',city:'New Delhi',pin:'110020',lat:'28.6139',lng:'77.2090'},
+    {id:'PRM-002',hid:'GST-H-002',mfr:'Shri Ganesh Tobacco Pvt Ltd',name:'Ganesh Plant Delhi',code:'F002',gstin:'07AABCS1429B1Z5',city:'New Delhi',pin:'110045',lat:'28.6562',lng:'77.2410'},
+    {id:'PRM-003',hid:'GST-H-003',mfr:'Bombay Pan Masala Works',name:'Bombay Pan Plant',code:'F003',gstin:'27AAGCB0399C1ZP',city:'Mumbai',pin:'400093',lat:'19.0760',lng:'72.8777'},
+  ];
+  const MACHINES=[
+    {id:'MCH-001',pid:'PRM-001',name:'Packing Machine 1',regNo:'REG12345',type:'Vertical',make:'Bosch',model:'BPK-100',status:'RUNNING'},
+    {id:'MCH-002',pid:'PRM-002',name:'Cigarette Packing Machine A',regNo:'CHTPR0365MHS00320001',type:'Horizontal',make:'Hauni',model:'PROTOS-M5',status:'RUNNING'},
+    {id:'MCH-003',pid:'PRM-003',name:'Pan Masala Packing Unit B',regNo:'CHTPR0365MHS00300001',type:'Vertical',make:'Nichrome',model:'SERVO-N6',status:'RUNNING'},
+  ];
+  const OFFICERS=[
+    {id:'OFC-001',hid:'GST-H-001',name:'Raj Kumar',code:'OFC1001',desig:'Superintendent',mob:'9876543210',email:'raj.kumar@gov.in'},
+    {id:'OFC-002',hid:'GST-H-002',name:'Rajesh Kumar Sharma',code:'OFC1002',desig:'Range Officer',mob:'9876500512',email:'rajesh.sharma@gstin.gov.in'},
+    {id:'OFC-003',hid:'GST-H-003',name:'Priya Sharma',code:'OFC1003',desig:'Assistant Commissioner',mob:'9700321678',email:'priya.sharma@gstin.gov.in'},
+  ];
+
+  const TABS=[{id:'hierarchy',label:'GST Hierarchy',n:HIERARCHY.length},{id:'premises',label:'Premises',n:PREMISES.length},{id:'machines',label:'Machines',n:MACHINES.length},{id:'officers',label:'Officers',n:OFFICERS.length}];
+  const triggerSync=()=>{setSyncing(true);setTimeout(()=>{setSyncing(false);setLastSync('Just now');},2800);};
+  const filt=(arr,keys)=>arr.filter(r=>!search||keys.some(k=>(r[k]||'').toLowerCase().includes(search.toLowerCase())));
+
+  return(
+    <div>
+      <div className="page-header">
+        <div className="breadcrumb"><a href="#">Home</a> <span>/</span> GST Master Data</div>
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
+          <div>
+            <div className="page-title">GST Master Data</div>
+            <div className="page-subtitle">Synced from external GST Sync API (POST /api/v1/master-data/push) · 4 modules · hierarchy to officer</div>
+          </div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <div style={{fontSize:11,color:'var(--text3)'}}>Last sync: <span style={{fontFamily:'var(--mono)',color:'var(--navy)'}}>{lastSync}</span></div>
+            <button className="btn-teal" onClick={triggerSync} disabled={syncing} style={{opacity:syncing?0.7:1}}>{syncing?'Syncing...':'Sync Now'}</button>
+          </div>
+        </div>
+      </div>
+      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(4,1fr)',marginBottom:14}}>
+        {[{l:'Hierarchy Records',v:HIERARCHY.length,a:'#1a237e'},{l:'Premises',v:PREMISES.length,a:'#00695c'},{l:'Machines',v:MACHINES.length,a:'#e65100'},{l:'Officers',v:OFFICERS.length,a:'#1565c0'}].map(k=>(
           <div key={k.l} className="kpi" style={{'--kpi-accent':k.a}}><div className="kpi-label">{k.l}</div><div className="kpi-value" style={{fontSize:24}}>{k.v}</div></div>
         ))}
       </div>
       <div className="card">
-        <div className="filter-bar">
-          {['all','New','Assigned','In Progress','Pending','Completed','Breach'].map(s=>(
-            <button key={s} className={`filter-btn${filterStatus===s?' active':''}`} onClick={()=>setFilterStatus(s)}>{s==='all'?'All':s}</button>
+        <div style={{display:'flex',gap:0,borderBottom:'2px solid var(--border)',marginBottom:14}}>
+          {TABS.map(t=>(
+            <div key={t.id} onClick={()=>setTab(t.id)} style={{padding:'10px 18px',cursor:'pointer',borderBottom:tab===t.id?'2px solid var(--navy)':'2px solid transparent',marginBottom:'-2px',color:tab===t.id?'var(--navy)':'var(--text3)',fontWeight:tab===t.id?700:500,fontSize:12.5,display:'flex',alignItems:'center',gap:6}}>
+              {t.label}
+              <span style={{background:tab===t.id?'var(--navy)':'var(--border)',color:tab===t.id?'#fff':'var(--text3)',borderRadius:10,padding:'1px 7px',fontSize:10,fontFamily:'var(--mono)',fontWeight:700}}>{t.n}</span>
+            </div>
           ))}
-          <div style={{marginLeft:'auto',display:'flex',gap:6}}>
-            <button className={`filter-btn${filterType==='ESE'?' active':''}`} onClick={()=>setFilterType(f=>f==='ESE'?'all':'ESE')}>🔒 Seal (ESE)</button>
-            <button className={`filter-btn${filterType==='EUE'?' active':''}`} onClick={()=>setFilterType(f=>f==='EUE'?'all':'EUE')}>🔓 Unseal (EUE)</button>
-          </div>
+          <input className="search-input" placeholder="Search..." value={search} onChange={e=>setSearch(e.target.value)} style={{marginLeft:'auto',width:220}}/>
         </div>
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>Ticket ID</th><th>Type</th><th>Firm</th><th>Machine</th><th>Jurisdiction</th><th>Range Officer</th><th>Date</th><th>Priority</th><th>Status</th><th></th></tr></thead>
-            <tbody>
-              {filtered.map(t=>(
-                <tr key={t.id} style={{cursor:'pointer'}} onClick={()=>{setSelected(t);setView('detail');}}>
-                  <td><span className="chip">{t.id}</span></td>
-                  <td><span style={{fontSize:10.5,padding:'2px 7px',borderRadius:3,background:t.type==='ESE'?'var(--navy-light)':'var(--amber-light)',color:t.type==='ESE'?'var(--navy)':'var(--saffron)',fontWeight:700}}>{t.type}</span></td>
-                  <td style={{fontSize:11.5,maxWidth:150,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.firm}</td>
-                  <td style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--text3)'}}>{t.machine}</td>
-                  <td style={{fontSize:11.5,color:'var(--text2)'}}>{t.range}, {t.commissionerate}</td>
-                  <td style={{fontSize:11.5}}>{t.rangeOfficer}</td>
-                  <td style={{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--text3)'}}>{t.requestDate}</td>
-                  <td><span style={{fontSize:10.5,fontWeight:700,color:priorityColor[t.priority]}}>{t.priority}</span></td>
-                  <td><span className={`pill ${t.status==='Completed'?'online':t.status==='Breach'?'breach':t.status==='In Progress'||t.status==='Assigned'?'charging':'sealed'}`}>{t.status}</span></td>
-                  <td onClick={e=>e.stopPropagation()}><button onClick={()=>{setSelected(t);setView('detail');}} style={{padding:'4px 10px',borderRadius:3,border:'1px solid var(--border)',background:'#fff',color:'var(--navy)',cursor:'pointer',fontSize:11,fontFamily:'var(--font)',fontWeight:600}}>View</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div style={{marginTop:10,fontSize:11,color:'var(--text3)'}}>Showing {filtered.length} of {tickets.length} tickets · Click any row to view full details</div>
+
+        {tab==='hierarchy'&&<div className="table-wrap"><table>
+          <thead><tr><th>ID</th><th>Zone</th><th>Commissionerate</th><th>Division</th><th>Range</th><th>State</th><th>Pincode</th></tr></thead>
+          <tbody>{filt(HIERARCHY,['id','zone','comm','range','state']).map(r=>(
+            <tr key={r.id}>
+              <td><span className="chip">{r.id}</span></td>
+              <td style={{fontWeight:600,color:'var(--navy)'}}>{r.zone} <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text3)'}}>{r.zoneCode}</span></td>
+              <td>{r.comm} <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text3)'}}>{r.commCode}</span></td>
+              <td style={{color:'var(--text2)'}}>{r.div}</td>
+              <td style={{fontWeight:600}}>{r.range} <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text3)'}}>{r.rangeCode}</span></td>
+              <td style={{color:'var(--text2)'}}>{r.state}</td>
+              <td style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--text3)'}}>{r.pin}</td>
+            </tr>
+          ))}</tbody>
+        </table></div>}
+
+        {tab==='premises'&&<div className="table-wrap"><table>
+          <thead><tr><th>Premise ID</th><th>Name</th><th>Manufacturer</th><th>GSTIN</th><th>City</th><th>Geo-fence (Lat,Lng)</th><th>Hierarchy</th></tr></thead>
+          <tbody>{filt(PREMISES,['id','name','mfr','gstin','city']).map(r=>(
+            <tr key={r.id}>
+              <td><span className="chip">{r.id}</span></td>
+              <td style={{fontWeight:600,color:'var(--navy)'}}>{r.name} <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text3)'}}>{r.code}</span></td>
+              <td style={{color:'var(--text2)'}}>{r.mfr}</td>
+              <td style={{fontFamily:'var(--mono)',fontSize:11}}>{r.gstin}</td>
+              <td>{r.city} <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text3)'}}>{r.pin}</span></td>
+              <td style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--teal)'}}>{r.lat}N, {r.lng}E</td>
+              <td><span className="chip" style={{background:'var(--navy-light)',color:'var(--navy)'}}>{r.hid}</span></td>
+            </tr>
+          ))}</tbody>
+        </table></div>}
+
+        {tab==='machines'&&<div className="table-wrap"><table>
+          <thead><tr><th>Machine ID</th><th>Name</th><th>Reg. No.</th><th>Type</th><th>Make / Model</th><th>Status</th><th>Premise</th></tr></thead>
+          <tbody>{filt(MACHINES,['id','name','regNo','make','model']).map(r=>(
+            <tr key={r.id}>
+              <td><span className="chip">{r.id}</span></td>
+              <td style={{fontWeight:600,color:'var(--navy)'}}>{r.name}</td>
+              <td style={{fontFamily:'var(--mono)',fontSize:11}}>{r.regNo}</td>
+              <td style={{color:'var(--text2)'}}>{r.type}</td>
+              <td style={{color:'var(--text2)'}}>{r.make} {r.model}</td>
+              <td><span className={'pill '+(r.status==='RUNNING'?'online':'offline')}>{r.status}</span></td>
+              <td><span className="chip" style={{background:'var(--teal-light)',color:'var(--teal)'}}>{r.pid}</span></td>
+            </tr>
+          ))}</tbody>
+        </table></div>}
+
+        {tab==='officers'&&<div className="table-wrap"><table>
+          <thead><tr><th>Officer ID</th><th>Name</th><th>Code</th><th>Designation</th><th>Mobile</th><th>Email</th><th>Hierarchy</th></tr></thead>
+          <tbody>{filt(OFFICERS,['id','name','code','desig','email']).map(r=>(
+            <tr key={r.id}>
+              <td><span className="chip">{r.id}</span></td>
+              <td style={{fontWeight:600,color:'var(--navy)'}}>{r.name}</td>
+              <td style={{fontFamily:'var(--mono)',fontSize:11}}>{r.code}</td>
+              <td style={{color:'var(--text2)'}}>{r.desig}</td>
+              <td style={{fontFamily:'var(--mono)',fontSize:11}}>{r.mob}</td>
+              <td style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--teal)'}}>{r.email}</td>
+              <td><span className="chip" style={{background:'var(--navy-light)',color:'var(--navy)'}}>{r.hid}</span></td>
+            </tr>
+          ))}</tbody>
+        </table></div>}
+
+        <div style={{marginTop:10,fontSize:11,color:'var(--text3)'}}>GST Sync API (POST /api/v1/master-data/push) - mock data active - set GST_SYNC_MOCK=False in .env to use live API</div>
       </div>
     </div>
   );
 }
 
-// ─── App ─────────────────────────────────────────────────────────
 function App(){
   const [page,setPage]=useState('dashboard');
   const [time,setTime]=useState(new Date());
   const [user,setUser]=useState(null);
-
+  const [tickets,setTickets]=useState(()=>{
+    try{const s=localStorage.getItem('elsm_tickets_v2');if(s){const p=JSON.parse(s);if(Array.isArray(p)&&p.length)return p;}}catch(e){}
+    return INITIAL_TICKETS;
+  });
+  useEffect(()=>{try{localStorage.setItem('elsm_tickets_v2',JSON.stringify(tickets));}catch(e){};},[tickets]);
   useEffect(()=>{
     const t=setInterval(()=>setTime(new Date()),1000);
     try{const s=localStorage.getItem('elsm_user');if(s)setUser(JSON.parse(s));}catch(e){}
     return()=>clearInterval(t);
   },[]);
-
   const handleLogin=(u)=>{setUser(u);try{localStorage.setItem('elsm_user',JSON.stringify(u));}catch(e){}};
   const handleLogout=()=>{if(!confirm('Sign out of ELSM Portal?'))return;setUser(null);try{localStorage.removeItem('elsm_user');}catch(e){}};
-
   if(!user) return <LoginScreen onLogin={handleLogin}/>;
-
-  const pages={dashboard:<Dashboard/>,locks:<LockInventory/>,events:<EventsPage/>,alerts:<AlertsPage/>,map:<ZoneCoverage/>,sla:<SLAReports/>,dggi:<DGGITickets/>};
+  function renderPage(page,user,tickets,setTickets){
+    if(page==='dashboard') return React.createElement(Dashboard,{user,tickets});
+    if(page==='locks') return React.createElement(LockInventory,null);
+    if(page==='events') return React.createElement(EventsPage,null);
+    if(page==='alerts') return React.createElement(AlertsPage,null);
+    if(page==='map') return React.createElement(ZoneCoverage,null);
+    if(page==='sla') return React.createElement(SLAReports,null);
+    if(page==='dggi') return React.createElement(DGGITickets,{tickets,setTickets,user});
+    if(page==='gst') return React.createElement(GSTMasterData,null);
+    return React.createElement(Dashboard,{user,tickets});
+  }
   return(
     <div className="app">
       <GOIStrip/>
       <Header time={time} user={user} onLogout={handleLogout}/>
       <Sidebar active={page} setActive={setPage}/>
-      <div className="main">{pages[page]||<Dashboard/>}</div>
+      <div className="main">{renderPage(page,user,tickets,setTickets)||<Dashboard/>}</div>
     </div>
   );
 }
-
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
